@@ -1,0 +1,5 @@
+# Solo se publica la presentación (index.html + assets/).
+Segmentation_UNet.ipynb
+tools/
+.work/
+README.md

@@ -1,0 +1,5 @@
+# descargas, modelos y pruebas (todo se reproduce con Segmentation_UNet.ipynb)
+.work/
+__pycache__/
+.ipynb_checkpoints/
+*.keras
