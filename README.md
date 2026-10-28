@@ -1,7 +1,7 @@
 # Redes convolucionales de segmentación
 
-Presentación (~10 min) y notebook que explican, paso a paso, cómo funcionan las redes de segmentación:
-de la CNN de clasificación a la FCN, el encoder–decoder y la **U-Net**, con una U-Net real entrenada en **CamVid**.
+Presentación y notebook que explican, paso a paso, cómo funcionan las redes de segmentación:
+la **U-Net** por dentro, operación por operación, con una U-Net real entrenada en **CamVid**, y sus parientes (FCN, SegNet, DeepLab, Mask R-CNN, SAM).
 
 | Archivo | Qué es |
 |---|---|
@@ -14,24 +14,23 @@ de la CNN de clasificación a la FCN, el encoder–decoder y la **U-Net**, con u
 
 Sirve la carpeta (`python -m http.server`) y abre `http://localhost:8000`.
 Navegación: clic o →/Espacio para avanzar, ← para regresar, `f` pantalla completa, `#N` en la URL salta a la escena N.
-Algunas escenas son interactivas: el deslizador de *sin skips vs U-Net* (8), las probabilidades por píxel al pasar
-el cursor (9) y la curva de entrenamiento (10).
+Algunas escenas son interactivas: las probabilidades por píxel al pasar el cursor (6, paso 12),
+el deslizador de *sin skips vs U-Net* (7), la curva de entrenamiento (9) y las pestañas de arquitecturas (11).
 
 | # | Escena |
 |---|---|
 | 1 | Portada: la foto se vuelve píxeles y cada píxel toma su clase |
-| 2 | Clasificación, detección, segmentación semántica y de instancias sobre la misma foto |
-| 3 | El problema: una CNN de clasificación reduce 192 × 256 a 12 × 16 y olvida el *dónde* |
-| 4 | Idea 1 · FCN: sin capas densas, convolución 1 × 1 y estirar × 16 |
-| 5 | Cómo se agranda un mapa: vecino más cercano, bilineal y convolución transpuesta |
-| 6 | Idea 2 · encoder–decoder (predicción real sin skips) |
-| 7 | Idea 3 · la arquitectura **U-Net**, dibujada con los tamaños reales de la red entrenada |
-| 8 | Lo que aportan las skip connections (comparación y mIoU en test) |
-| 9 | Softmax por píxel, cross-entropy y IoU |
-| 10 | Cómo aprende: la predicción después de cada época |
-| 11 | IoU por clase en test y mapa de errores |
-| 12 | Más allá: DeepLab, Mask R-CNN y SAM |
-| 13 | Resumen y preguntas |
+| 2 | Qué es segmentar: clasificación, detección, segmentación semántica y de instancias |
+| 3 | La arquitectura U-Net (con los tamaños reales de la red) y las definiciones necesarias |
+| 4 | Paso a paso · encoder: entrada, convolución 3 × 3 con números reales, BatchNorm + ReLU, max pooling, repetir |
+| 5 | Paso a paso · decoder: convolución transpuesta, concatenar (skip), convoluciones, repetir |
+| 6 | Paso a paso · salida: conv 1 × 1, softmax por píxel (interactivo) y argmax |
+| 7 | Para qué sirven las skips (comparación y mIoU en test) |
+| 8 | Cómo se entrena: cross-entropy por píxel e IoU |
+| 9 | Cómo aprende: la predicción después de cada época |
+| 10 | IoU por clase en test y mapa de errores |
+| 11 | Otras arquitecturas: FCN, SegNet, DeepLab v3+, Mask R-CNN y SAM (diagrama, pasos, diferencias y tabla comparativa) |
+| 12 | Resumen y preguntas |
 
 ### Publicar en Vercel
 

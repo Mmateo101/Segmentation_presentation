@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Redes de segmentación</title>
-<meta name="description" content="Redes convolucionales de segmentación paso a paso: de la CNN de clasificación a la U-Net, con una U-Net real entrenada en CamVid.">
+<meta name="description" content="Redes convolucionales de segmentación paso a paso: la U-Net por dentro, con una red real entrenada en CamVid, y sus variantes.">
 <meta property="og:title" content="Redes convolucionales de segmentación">
-<meta property="og:description" content="De la CNN de clasificación a la U-Net, con una U-Net real entrenada en CamVid.">
+<meta property="og:description" content="La U-Net por dentro, paso a paso, con una red real entrenada en CamVid.">
 <meta name="theme-color" content="#0F1220">
 <link rel="icon" href="assets/img/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,9 +31,9 @@
   <i data-s="1" hidden></i>
 </section>
 
-<!-- 02 TRES PREGUNTAS -->
+<!-- 02 ¿QUÉ ES SEGMENTAR? -->
 <section class="scene light" id="tareas" data-tr="circle">
-  <div class="hd"><p class="eyebrow">Misma foto, distintas preguntas</p><h2 class="ttl">¿Qué hay, dónde y <em>qué es cada píxel</em>?</h2></div>
+  <div class="hd"><p class="eyebrow">¿Qué es segmentar?</p><h2 class="ttl">¿Qué hay, dónde y <em>qué es cada píxel</em>?</h2></div>
   <div class="frame" id="tkFrame">
     <img class="ph" src="assets/generated/hero.jpg" alt="Calle de Cambridge grabada desde un auto">
     <img class="lyr sem" src="assets/generated/hero_gt.png" alt="Máscara de clases">
@@ -50,81 +50,141 @@
   <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i>
 </section>
 
-<!-- 03 EL PROBLEMA -->
-<section class="scene dark" id="problema" data-tr="zoom">
-  <div class="hd"><p class="eyebrow">Lo que ya conocen</p><h2 class="ttl">Una CNN de clasificación <em>olvida el dónde</em></h2></div>
-  <div class="pipe" id="pbPipe"></div>
-  <div class="vec" id="pbVec"><div class="dots"></div><div class="out"></div></div>
-  <p class="pb-msg m1">Cada bloque <b>reduce a la mitad</b> el tamaño y <b>duplica los canales</b>.</p>
-  <p class="pb-msg m2">Al final: <b>“hay un auto”</b>. Pero ¿cuáles píxeles?</p>
-  <div class="pb-zoom" data-s="2">
-    <div class="pz"><img src="assets/generated/hero.jpg" alt=""><img class="pix" src="assets/generated/hero_coarse.png" alt="Máscara a 12 por 16"><span>12 × 16 posiciones</span></div>
-    <p><b id="pbCell">16 × 16</b> píxeles comparten <b>una sola</b> respuesta.</p>
+<!-- 03 LA ARQUITECTURA + DEFINICIONES -->
+<section class="scene dark" id="arq" data-tr="zoom">
+  <div class="hd"><p class="eyebrow">Ronneberger, Fischer y Brox, 2015</p><h2 class="ttl">La arquitectura <em>U-Net</em></h2></div>
+  <svg class="un" id="arqSvg" viewBox="0 0 1664 720" role="img" aria-label="Arquitectura U-Net: encoder a la izquierda, decoder a la derecha y skip connections que cruzan la U"></svg>
+  <p class="arq-cap" id="arqCap"><b>Encoder</b> (bajada): comprime · <b>Decoder</b> (subida): reconstruye · <b>Skips</b> (punteadas): copian el detalle</p>
+  <div class="defs" id="arqDefs">
+    <p class="cap">Lo que hay que saber</p>
+    <div class="df" data-k="1" data-t="bar"><i class="sw bar"></i><div><b>Mapa de características</b><span>La imagen de números que sale de cada capa. Cada barra es un mapa: alto = tamaño, ancho = canales.</span></div></div>
+    <div class="df" data-k="2" data-t="conv"><i class="sw" style="background:#3A86FF"></i><div><b>Convolución 3 × 3</b><span>Un filtro de 3 × 3 pesos recorre la imagen; en cada posición multiplica y suma.</span></div></div>
+    <div class="df" data-k="3" data-t="conv"><i class="sw" style="background:#3A86FF"></i><div><b>BatchNorm + ReLU</b><span>Van pegados a cada convolución. BatchNorm reescala los valores; ReLU cambia los negativos por 0.</span></div></div>
+    <div class="df" data-k="4" data-t="pool"><i class="sw" style="background:#FF4D6D"></i><div><b>Max pooling 2 × 2</b><span>De cada cuadro de 2 × 2 se queda el máximo: el mapa se reduce a la mitad.</span></div></div>
+    <div class="df" data-k="5" data-t="up"><i class="sw" style="background:#2EC4B6"></i><div><b>Convolución transpuesta 2 × 2</b><span>Lo contrario: cada valor se vuelve un cuadro de 2 × 2; el mapa crece al doble.</span></div></div>
+    <div class="df" data-k="6" data-t="skip"><i class="sw dash"></i><div><b>Skip connection</b><span>Copia el mapa del encoder y lo pega (concatena) en canales con el del decoder.</span></div></div>
+    <div class="df" data-k="7" data-t="out"><i class="sw" style="background:#FFD23F"></i><div><b>Conv 1 × 1 + softmax</b><span>Convierte los canales de cada píxel en 11 probabilidades, una por clase.</span></div></div>
   </div>
-  <i data-s="1" hidden></i>
+  <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i><i data-s="4" hidden></i><i data-s="5" hidden></i><i data-s="6" hidden></i><i data-s="7" hidden></i>
 </section>
 
-<!-- 04 FCN -->
-<section class="scene light" id="fcn" data-tr="door">
-  <div class="hd"><p class="eyebrow">Idea 1 · Long, Shelhamer y Darrell, 2015</p><h2 class="ttl">Todo <em>convolucional</em> (FCN)</h2></div>
-  <ol class="steps3">
-    <li data-k="0"><i>1</i><div><b>Quitar las capas densas</b><span>La red ya no aplana: conserva la cuadrícula de 12 × 16.</span></div></li>
-    <li data-k="1"><i>2</i><div><b>Convolución 1 × 1</b><span>En cada posición, 11 puntajes: uno por clase.</span></div></li>
-    <li data-k="2"><i>3</i><div><b>Estirar × 16</b><span>Interpolar hasta el tamaño de la foto.</span></div></li>
-  </ol>
-  <div class="frame" id="fcFrame">
-    <img class="ph" src="assets/generated/hero.jpg" alt="">
-    <div class="grid" id="fcGrid"></div>
-    <img class="lyr pix c1" src="assets/generated/hero_coarse.png" alt="Mapa de clases de 12 por 16">
-    <img class="lyr c2" src="assets/generated/hero_coarse.png" alt="Mapa estirado con interpolación">
-    <div class="col" id="fcCol"></div>
+<!-- 04 PASO A PASO · ENCODER -->
+<section class="scene light pp" id="enc" data-tr="door">
+  <div class="hd"><p class="eyebrow">Paso a paso · parte 1 de 3</p><h2 class="ttl">El <em>encoder</em>: bajar por la U</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="pane" data-p="0">
+    <div class="tx"><p class="no">Paso 1</p><h3>La entrada</h3><p>La red recibe la foto como <b>3 matrices de números</b> (rojo, verde y azul), con valores de 0 a 1.</p><p class="shape">192 × 256 × 3</p></div>
+    <div class="vis in3">
+      <div class="ph"><img src="assets/generated/hero.jpg" alt=""></div>
+      <div class="chs"><img src="assets/generated/step_in_r.png" alt="Canal rojo"><img src="assets/generated/step_in_g.png" alt="Canal verde"><img src="assets/generated/step_in_b.png" alt="Canal azul"></div>
+      <div class="chl"><span>R</span><span>G</span><span>B</span></div>
+    </div>
   </div>
-  <p class="fc-note">Máscara real reducida a 12 × 16: lo mejor que podría salir así.</p>
-  <i data-s="1" hidden></i><i data-s="2" hidden></i>
+  <div class="pane" data-p="1">
+    <div class="tx"><p class="no">Paso 2</p><h3>Convolución 3&nbsp;×&nbsp;3</h3><p>Un filtro de <b>3 × 3 × 3 = 27 pesos</b> aprendidos recorre la foto. En cada posición: multiplicar y sumar.</p>
+      <div class="tex" data-plain="y = Σ w · x" data-tex="y = \sum_{i,j,c} w_{i,j,c}\, x_{i,j,c}"></div>
+      <ul class="vars"><li><b>w</b> = peso del filtro</li><li><b>x</b> = valor del píxel</li><li><b>i, j</b> = fila y columna dentro del 3 × 3</li><li><b>c</b> = canal (R, G, B)</li></ul>
+      <p class="shape">16 filtros → 16 mapas</p></div>
+    <div class="vis cv">
+      <div class="g5" id="cvPatch"></div><b class="op">⊛</b>
+      <div class="g3k" id="cvKern"></div><b class="op">=</b>
+      <div class="g3o" id="cvOut"></div>
+      <p class="cvn">Números reales de la red. Se muestra la capa <b>R</b> del filtro; las 3 capas se suman.</p>
+      <div class="cvmap"><img src="assets/generated/step_conv.png" alt="Mapa que sale de un filtro"><i id="cvDot"></i><span>salida de este filtro · 192 × 256</span></div>
+    </div>
+  </div>
+  <div class="pane" data-p="2">
+    <div class="tx"><p class="no">Paso 3</p><h3>BatchNorm + ReLU</h3><p><b>BatchNorm</b> centra y escala los valores. <b>ReLU</b> cambia los negativos (azul) por 0 y deja pasar los positivos.</p>
+      <div class="tex" data-plain="ReLU(x) = max(0, x)" data-tex="\text{ReLU}(x) = \max(0,\, x)"></div>
+      <p class="shape"><span id="reluZ">0%</span> de los valores quedan en 0</p></div>
+    <div class="vis br">
+      <figure><img src="assets/generated/step_bn.png" alt=""><figcaption>después de conv + BatchNorm</figcaption></figure>
+      <svg class="relu" viewBox="0 0 220 220" aria-label="Gráfica de ReLU"><line x1="10" y1="160" x2="210" y2="160"/><line x1="110" y1="10" x2="110" y2="210"/><path d="M10 160 L110 160 L200 40"/><text x="200" y="64" text-anchor="end">ReLU</text></svg>
+      <figure><img src="assets/generated/step_relu.png" alt=""><figcaption>después de ReLU</figcaption></figure>
+    </div>
+  </div>
+  <div class="pane" data-p="3">
+    <div class="tx"><p class="no">Paso 4</p><h3>Otra convolución</h3><p>Una segunda conv 3 × 3 (+ BatchNorm + ReLU). Salen <b>16 mapas</b>; cada uno responde a un patrón distinto: bordes, cielo, sombras…</p><p class="shape">192 × 256 × 16</p></div>
+    <div class="vis m16"><img src="assets/generated/step_16maps.png" alt="Los 16 mapas del primer nivel"></div>
+  </div>
+  <div class="pane" data-p="4">
+    <div class="tx"><p class="no">Paso 5</p><h3>Max pooling 2&nbsp;×&nbsp;2</h3><p>De cada cuadro de 2 × 2 se queda el <b>máximo</b>. El mapa se reduce a la mitad; el número de canales no cambia.</p><p class="shape">192 × 256 × 16 → 96 × 128 × 16</p></div>
+    <div class="vis mp">
+      <div class="g8" id="mpIn"></div><b class="op">→</b><div class="g4" id="mpOut"></div>
+      <figure class="a"><img src="assets/generated/step_prepool.png" alt=""><figcaption>192 × 256</figcaption></figure>
+      <figure class="b"><img class="pix" src="assets/generated/step_pool.png" alt=""><figcaption>96 × 128</figcaption></figure>
+    </div>
+  </div>
+  <div class="pane" data-p="5">
+    <div class="tx"><p class="no">Paso 6</p><h3>Repetir 4 veces</h3><p>Conv, conv, pool… en cada nivel el tamaño <b>÷ 2</b> y los canales <b>× 2</b>. En el fondo de la U (el <b>cuello de botella</b>) la red sabe <b>qué</b> hay, pero con muy poca resolución.</p><p class="shape">12 × 16 × 256</p></div>
+    <div class="vis rep" id="encRep"></div>
+  </div>
+  <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i><i data-s="4" hidden></i><i data-s="5" hidden></i>
 </section>
 
-<!-- 05 UPSAMPLING -->
-<section class="scene dark" id="upsample" data-tr="diag">
-  <div class="hd"><p class="eyebrow">Regresar al tamaño original</p><h2 class="ttl">¿Cómo se <em>agranda</em> un mapa?</h2></div>
-  <div class="ups">
-    <div class="up u0"><h3>Vecino más cercano</h3><p>Copia cada valor.</p><div class="pair"><div class="gin"></div><b class="arr"></b><div class="gout"></div></div></div>
-    <div class="up u1"><h3>Bilineal</h3><p>Promedia con los vecinos.</p><div class="pair"><div class="gin"></div><b class="arr"></b><div class="gout"></div></div></div>
-    <div class="up u2"><h3>Convolución transpuesta</h3><p>Cada valor <b>estampa</b> un kernel que <b>se aprende</b>.</p><div class="pair"><div class="gin"></div><b class="arr"></b><div class="gout"></div></div>
-      <div class="kern"><span>kernel 2 × 2</span><div class="gk"></div><em id="upEq"></em></div></div>
+<!-- 05 PASO A PASO · DECODER -->
+<section class="scene light pp" id="dec" data-tr="diag">
+  <div class="hd"><p class="eyebrow">Paso a paso · parte 2 de 3</p><h2 class="ttl">El <em>decoder</em>: subir por la U</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="pane" data-p="0">
+    <div class="tx"><p class="no">Paso 7</p><h3>Convolución transpuesta 2&nbsp;×&nbsp;2</h3><p>Cada valor se multiplica por un kernel de 2 × 2 <b>aprendido</b> y ocupa un cuadro de 2 × 2. Tamaño <b>× 2</b>, canales <b>÷ 2</b>.</p><p class="shape">12 × 16 × 256 → 24 × 32 × 128</p></div>
+    <div class="vis tc">
+      <div class="toy"><div class="gin"></div><b class="op">→</b><div class="gout"></div><div class="kern"><span>kernel</span><div class="gk"></div><em id="tcEq"></em></div></div>
+      <figure class="a"><img class="pix" src="assets/generated/step_bottleneck.png" alt=""><figcaption>12 × 16</figcaption></figure><b class="op big">→</b>
+      <figure class="b"><img class="pix" src="assets/generated/step_up4.png" alt=""><figcaption>24 × 32</figcaption></figure>
+    </div>
   </div>
-  <i data-s="1" hidden></i><i data-s="2" hidden></i>
-</section>
-
-<!-- 06 ENCODER-DECODER -->
-<section class="scene light" id="encdec" data-tr="rise">
-  <div class="hd"><p class="eyebrow">Idea 2</p><h2 class="ttl">Encoder <em>→</em> decoder</h2></div>
-  <div class="ed" id="edRow"></div>
-  <div class="ed-lbl l1">encoder · comprime</div><div class="ed-lbl l2">decoder · reconstruye</div>
-  <div class="ed-out" data-s="2">
-    <div class="pr"><img src="assets/generated/hero.jpg" alt=""><img class="lyr" src="assets/generated/hero_plain.png" alt="Predicción sin skip connections"><span>predicción real · sin skips</span></div>
-    <p>Recupera el <b>tamaño</b>, pero no los <b>detalles</b>: postes, peatones y bordes se pierden en el cuello de botella.</p>
+  <div class="pane" data-p="1">
+    <div class="tx"><p class="no">Paso 8</p><h3>Concatenar (skip)</h3><p>Se pega el mapa del encoder <b>del mismo tamaño</b> como canales extra. Trae los detalles que se perdieron al reducir.</p><p class="shape">128 + 128 = 256 canales</p></div>
+    <div class="vis ct">
+      <figure><img class="pix" src="assets/generated/step_up4.png" alt=""><figcaption>del decoder · 24 × 32 × 128</figcaption></figure><b class="op">+</b>
+      <figure><img class="pix" src="assets/generated/step_skip4.png" alt=""><figcaption>copia del encoder · 24 × 32 × 128</figcaption></figure><b class="op">=</b>
+      <div class="stk2"><img class="pix" src="assets/generated/step_up4.png" alt=""><img class="pix" src="assets/generated/step_skip4.png" alt=""><span>24 × 32 × 256</span></div>
+    </div>
   </div>
-  <i data-s="1" hidden></i>
-</section>
-
-<!-- 07 U-NET -->
-<section class="scene dark" id="unet" data-tr="zoom">
-  <div class="hd"><p class="eyebrow">Idea 3 · Ronneberger, Fischer y Brox, 2015</p><h2 class="ttl">La <em>U-Net</em></h2></div>
-  <svg class="un" id="unSvg" viewBox="0 0 1664 700" role="img" aria-label="Arquitectura U-Net: encoder a la izquierda, decoder a la derecha y skip connections que cruzan la U"></svg>
-  <div class="un-leg" id="unLeg">
-    <span><i style="background:#3A86FF"></i>conv 3×3 + BN + ReLU</span>
-    <span><i style="background:#FF4D6D"></i>max pool 2×2</span>
-    <span><i style="background:#2EC4B6"></i>conv transpuesta 2×2</span>
-    <span><i class="dash"></i>copiar y concatenar</span>
-    <span><i style="background:#FFD23F"></i>conv 1×1 + softmax</span>
+  <div class="pane" data-p="2">
+    <div class="tx"><p class="no">Paso 9</p><h3>Dos convoluciones 3&nbsp;×&nbsp;3</h3><p>Mezclan lo que viene de abajo (<b>qué</b> es) con la copia (<b>dónde</b> está).</p><p class="shape">24 × 32 × 256 → 24 × 32 × 128</p></div>
+    <div class="vis d9"><div class="stk2"><img class="pix" src="assets/generated/step_up4.png" alt=""><img class="pix" src="assets/generated/step_skip4.png" alt=""><span>24 × 32 × 256</span></div><b class="op big">→</b>
+      <figure><img class="pix" src="assets/generated/step_dec4.png" alt=""><figcaption>24 × 32 × 128</figcaption></figure></div>
   </div>
-  <div class="un-read" id="unRead"><b>192 × 256 × 3</b><span>entrada</span></div>
+  <div class="pane" data-p="3">
+    <div class="tx"><p class="no">Paso 10</p><h3>Repetir hasta el tamaño original</h3><p>Subir, pegar la copia, dos convoluciones… <b>4 veces</b>. El último nivel recibe la copia de 192 × 256, con todos los bordes finos.</p><p class="shape">192 × 256 × 16</p></div>
+    <div class="vis d10" id="decRep"></div>
+  </div>
   <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i>
 </section>
 
-<!-- 08 SKIPS -->
+<!-- 06 PASO A PASO · SALIDA -->
+<section class="scene dark pp" id="sal" data-tr="flip">
+  <div class="hd"><p class="eyebrow">Paso a paso · parte 3 de 3</p><h2 class="ttl">La <em>salida</em>: una clase por píxel</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="pane" data-p="0">
+    <div class="tx"><p class="no">Paso 11</p><h3>Convolución 1&nbsp;×&nbsp;1</h3><p>Un filtro de 1 × 1 mira <b>un solo píxel</b>: combina sus 16 canales en <b>11 puntajes</b>, uno por clase. Es como una capa densa aplicada a cada píxel.</p><p class="shape">192 × 256 × 16 → 192 × 256 × 11</p></div>
+    <div class="vis c11"><svg id="c11Svg" viewBox="0 0 1000 560" aria-label="Los 16 canales de un píxel se combinan en 11 puntajes"></svg></div>
+  </div>
+  <div class="pane" data-p="1">
+    <div class="tx"><p class="no">Paso 12</p><h3>Softmax</h3><p>Convierte los 11 puntajes de cada píxel en <b>probabilidades que suman 1</b>.</p>
+      <div class="tex" data-plain="p(c) = e^z(c) / Σ e^z(k)" data-tex="p_{c} = \dfrac{e^{z_{c}}}{\sum_{k=1}^{11} e^{z_{k}}}"></div>
+      <ul class="vars"><li><b>z</b> = puntaje de la clase</li><li><b>c</b> = clase</li><li><b>k</b> = recorre las 11 clases</li></ul></div>
+    <div class="vis sm">
+      <div class="probe noadv" id="smProbe"><img src="assets/generated/hero.jpg" alt=""><i class="cur" id="smCur"></i></div>
+      <div class="pbars" id="smBars"><p class="cap">pasa el cursor sobre la foto</p></div>
+      <div class="pmaps" id="smMaps"></div>
+    </div>
+  </div>
+  <div class="pane" data-p="2">
+    <div class="tx"><p class="no">Paso 13</p><h3>La clase más probable</h3><p>Cada píxel toma la clase con mayor probabilidad (<b>argmax</b>). Eso es la máscara.</p><p class="shape">192 × 256 etiquetas</p></div>
+    <div class="vis am">
+      <figure><img src="assets/generated/hero.jpg" alt=""><img class="ov" src="assets/generated/hero_unet.png" alt=""><figcaption>predicción de la U-Net</figcaption></figure>
+      <figure><img src="assets/generated/hero.jpg" alt=""><img class="ov" src="assets/generated/hero_gt_small.png" alt=""><figcaption>máscara real</figcaption></figure>
+    </div>
+  </div>
+  <i data-s="1" hidden></i><i data-s="2" hidden></i>
+</section>
+
+<!-- 07 SKIPS -->
 <section class="scene light" id="skips" data-tr="door">
-  <div class="hd"><p class="eyebrow">El mismo entrenamiento, una diferencia</p><h2 class="ttl">Las skips devuelven <em>los bordes</em></h2></div>
+  <div class="hd"><p class="eyebrow">Mismo entrenamiento, una diferencia</p><h2 class="ttl">¿Para qué sirven <em>las skips</em>?</h2></div>
   <div class="cmp noadv" id="skCmp">
     <img src="assets/generated/hero.jpg" alt="">
     <img class="m" src="assets/generated/hero_plain.png" alt="Sin skip connections">
@@ -133,36 +193,30 @@
     <span class="lb l">sin skips</span><span class="lb r">U-Net</span>
     <span class="drag">arrastra la línea</span>
   </div>
-  
   <div class="sk-num">
     <div><span>mIoU en test · sin skips</span><b class="c" id="skA">0</b></div>
     <div><span>mIoU en test · U-Net</span><b class="u" id="skB">0</b></div>
-    <p data-s="1">La copia lleva el detalle fino <b>(192 × 256)</b> directo al decoder; el decoder solo decide <b>qué</b> es.</p>
+    <p data-s="1">Misma red, sin copiar los mapas del encoder. Sin skips, el decoder tiene que <b>adivinar</b> los bordes desde 12 × 16.</p>
   </div>
   <i data-s="1" hidden></i>
 </section>
 
-<!-- 09 SALIDA Y PÉRDIDA -->
+<!-- 08 CÓMO SE ENTRENA -->
 <section class="scene dark" id="salida" data-tr="flip">
-  <div class="hd"><p class="eyebrow">Lo que sale y cómo se corrige</p><h2 class="ttl">Una <em>distribución</em> en cada píxel</h2></div>
-  <div class="probe noadv" id="sdProbe">
-    <img src="assets/generated/hero.jpg" alt="">
-    <img class="m" src="assets/generated/hero_unet.png" alt="">
-    <i class="cur" id="sdCur"></i>
+  <div class="hd"><p class="eyebrow">Cómo se entrena</p><h2 class="ttl">Pérdida y <em>métrica</em></h2></div>
+  <div class="sd-l">
+    <div class="eq on"><span class="cap">pérdida · cross-entropy promedio por píxel</span><div data-plain="L = −(1/N) Σᵢ w(yᵢ) · log p(i, yᵢ)" data-tex="\mathcal{L} = -\dfrac{1}{N}\sum_{i=1}^{N} w_{y_i}\,\log p_{i,\,y_i}"></div>
+      <ul><li><b>N</b> = número de píxeles</li><li><b>y<sub>i</sub></b> = clase real del píxel i</li><li><b>p<sub>i,y</sub></b> = probabilidad que la red le dio a esa clase</li><li><b>w</b> = peso de la clase: las raras pesan más</li></ul></div>
   </div>
-  <div class="sd-bars" id="sdBars"><p class="cap">pasa el cursor sobre la foto</p></div>
-  <div class="sd-math">
-    <div class="eq e0"><span class="cap">softmax por píxel</span><div data-plain="p(i,c) = e^z(i,c) / Σₖ e^z(i,k)" data-tex="p_{i,c} = \dfrac{e^{z_{i,c}}}{\sum_{k=1}^{11} e^{z_{i,k}}}"></div>
-      <ul><li><b>i</b> = píxel</li><li><b>c</b> = clase</li><li><b>z</b> = puntaje de la red</li></ul></div>
-    <div class="eq e1"><span class="cap">pérdida · cross-entropy promedio</span><div data-plain="L = −(1/N) Σᵢ w(yᵢ) · log p(i, yᵢ)" data-tex="\mathcal{L} = -\dfrac{1}{N}\sum_{i=1}^{N} w_{y_i}\,\log p_{i,\,y_i}"></div>
-      <ul><li><b>N</b> = número de píxeles</li><li><b>y<sub>i</sub></b> = clase real del píxel</li><li><b>w</b> = peso de la clase (raras pesan más)</li></ul></div>
-    <div class="eq e2"><span class="cap">métrica · intersección sobre unión</span><div data-plain="IoU = |A ∩ B| / |A ∪ B|" data-tex="\text{IoU}_c = \dfrac{|\,A_c \cap B_c\,|}{|\,A_c \cup B_c\,|}"></div>
-      <div class="iou"><svg viewBox="0 0 360 200" id="sdIou"></svg><b id="sdIouV">0.00</b></div></div>
+  <div class="sd-r" data-s="1">
+    <div class="eq on"><span class="cap">métrica · intersección sobre unión</span><div data-plain="IoU = |A ∩ B| / |A ∪ B|" data-tex="\text{IoU}_c = \dfrac{|\,A_c \cap B_c\,|}{|\,A_c \cup B_c\,|}"></div>
+      <div class="iou"><svg viewBox="0 0 360 200" id="sdIou"></svg><b id="sdIouV">0.00</b></div>
+      <ul><li><b>A</b> = píxeles que de verdad son de la clase</li><li><b>B</b> = píxeles que la red dijo que son</li><li><b>mIoU</b> = promedio de las 11 clases</li></ul></div>
   </div>
-  <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i>
+  <i data-s="1" hidden></i>
 </section>
 
-<!-- 10 ENTRENAMIENTO -->
+<!-- 09 ENTRENAMIENTO -->
 <section class="scene light" id="entrena" data-tr="corner">
   <div class="hd"><p class="eyebrow">CamVid · 367 fotos de entrenamiento</p><h2 class="ttl">Así <em>aprende a ver</em></h2></div>
   <div class="tr-two">
@@ -173,7 +227,7 @@
   <svg class="tr-curve noadv" id="trCurve" viewBox="0 0 1664 250"></svg>
 </section>
 
-<!-- 11 RESULTADOS -->
+<!-- 10 RESULTADOS -->
 <section class="scene dark" id="resultados" data-tr="doorv">
   <div class="hd"><p class="eyebrow">233 fotos de prueba que nunca vio</p><h2 class="ttl">¿Qué tan bien <em>segmenta</em>?</h2></div>
   <div class="rs-bars" id="rsBars"></div>
@@ -186,23 +240,57 @@
   <i data-s="1" hidden></i>
 </section>
 
-<!-- 12 MÁS ALLÁ -->
-<section class="scene light" id="mas" data-tr="circle">
-  <div class="hd"><p class="eyebrow">Después de la U-Net</p><h2 class="ttl">Más allá de <em>U-Net</em></h2></div>
-  <div class="cards3">
-    <div class="card" data-s="0"><div class="viz"><div class="dil" id="msDil"></div></div><h3>DeepLab</h3><span class="yr">2017 · convolución dilatada</span><p>Abre huecos en el kernel: <b>ve más contexto</b> sin reducir la imagen.</p><em id="msRate">rate = 1</em></div>
-    <div class="card" data-s="1"><div class="viz"><div class="mr"><img src="assets/generated/hero.jpg" alt=""><img class="lyr ins" src="assets/generated/hero_instances.png" alt=""><svg class="bx" id="msBx" viewBox="0 0 480 360" preserveAspectRatio="none"></svg></div></div><h3>Mask R-CNN</h3><span class="yr">2017 · instancias</span><p>Primero <b>detecta</b> cada objeto, luego <b>segmenta</b> dentro de su caja.</p></div>
-    <div class="card" data-s="2"><div class="viz"><div class="sam"><img src="assets/generated/hero.jpg" alt=""><img class="lyr one" id="msOne" src="assets/generated/hero_things.png" alt=""><i class="clk" id="msClk"></i></div></div><h3>SAM</h3><span class="yr">2023 · segmenta lo que señales</span><p>Un clic → una máscara, <b>sin reentrenar</b> para cada tipo de objeto.</p></div>
+<!-- 11 VARIANTES -->
+<section class="scene light" id="var" data-tr="circle">
+  <div class="hd"><p class="eyebrow">Parientes de la U-Net</p><h2 class="ttl">Otras <em>arquitecturas</em></h2></div>
+  <nav class="tabs" aria-label="Arquitecturas">
+    <button class="tab" type="button" data-i="0">FCN · 2015</button>
+    <button class="tab" type="button" data-i="1">SegNet · 2015</button>
+    <button class="tab" type="button" data-i="2">DeepLab v3+ · 2018</button>
+    <button class="tab" type="button" data-i="3">Mask R-CNN · 2017</button>
+    <button class="tab" type="button" data-i="4">SAM · 2023</button>
+    <button class="tab" type="button" data-i="5">Comparación</button>
+  </nav>
+  <div class="vp" data-p="0"><svg class="ad" viewBox="0 0 1664 330" id="adFcn"></svg>
+    <div class="vcols"><div><h4>Paso a paso</h4><ol><li>Una CNN de clasificación (VGG) <b>sin capas densas</b>.</li><li>Conv 1 × 1: puntajes por clase a <b>1/32</b> del tamaño.</li><li>Agranda × 2 y <b>suma</b> los puntajes de pool4; otra vez con pool3.</li><li>Agranda × 8 hasta el tamaño original.</li></ol></div>
+      <div><h4>Diferencia con U-Net</h4><p>Las skips <b>suman puntajes</b> en vez de concatenar mapas, y casi no hay decoder: el último salto es × 8. Bordes más gruesos.</p></div></div></div>
+  <div class="vp" data-p="1"><svg class="ad" viewBox="0 0 1664 330" id="adSeg"></svg>
+    <div class="vcols"><div><h4>Paso a paso</h4><ol><li>Encoder VGG: conv + pool, y guarda <b>dónde estaba cada máximo</b>.</li><li>Decoder simétrico: <b>unpooling</b> pone cada valor en la posición guardada.</li><li>Convoluciones rellenan los huecos.</li><li>Softmax por píxel.</li></ol></div>
+      <div><h4>Diferencia con U-Net</h4><p>No copia mapas completos: solo copia las <b>posiciones</b> (índices). Usa mucha menos memoria, pero recupera menos detalle. Nuestra red “sin skips” es como SegNet sin índices.</p></div></div></div>
+  <div class="vp" data-p="2"><svg class="ad" viewBox="0 0 1664 330" id="adDl"></svg>
+    <div class="vcols"><div><h4>Paso a paso</h4><ol><li>Encoder (ResNet o Xception) que solo reduce a <b>1/16</b>.</li><li>ASPP: 4 convoluciones <b>dilatadas</b> en paralelo (rates 1, 6, 12, 18) + promedio global.</li><li>Se concatenan y una conv 1 × 1 las combina.</li><li>Decoder corto: × 4, pega rasgos de 1/4, conv 3 × 3, × 4.</li></ol></div>
+      <div><h4>Diferencia con U-Net</h4><p>Ve más <b>contexto</b> sin reducir la imagen, gracias a la convolución dilatada. Su decoder es más simple: un solo skip.</p></div>
+      <div class="mv"><div class="dil" id="msDil"></div><em id="msRate">rate = 1</em></div></div></div>
+  <div class="vp" data-p="3"><svg class="ad" viewBox="0 0 1664 330" id="adMr"></svg>
+    <div class="vcols"><div><h4>Paso a paso</h4><ol><li>Backbone (ResNet + FPN) extrae mapas a varias escalas.</li><li>RPN <b>propone cajas</b> donde puede haber objetos.</li><li>RoIAlign recorta cada caja a 14 × 14.</li><li>Tres cabezas: clase, caja ajustada y una <b>mini FCN</b> que da la máscara 28 × 28 de ese objeto.</li></ol></div>
+      <div><h4>Diferencia con U-Net</h4><p>Segmenta <b>instancias</b>: primero detecta cada objeto y luego segmenta dentro de su caja. Dos autos = dos máscaras.</p></div>
+      <div class="mv"><div class="mr"><img src="assets/generated/hero.jpg" alt=""><img class="lyr ins" src="assets/generated/hero_instances.png" alt=""><svg class="bx" id="msBx" viewBox="0 0 480 360" preserveAspectRatio="none"></svg></div></div></div></div>
+  <div class="vp" data-p="4"><svg class="ad" viewBox="0 0 1664 330" id="adSam"></svg>
+    <div class="vcols"><div><h4>Paso a paso</h4><ol><li>Un encoder grande (ViT) procesa la imagen <b>una sola vez</b>.</li><li>El usuario da una pista: un punto, una caja o texto.</li><li>Un decoder ligero (transformer) cruza la pista con la imagen.</li><li>Devuelve 3 máscaras posibles con su calificación.</li></ol></div>
+      <div><h4>Diferencia con U-Net</h4><p>No tiene clases fijas: segmenta <b>lo que señales</b>. Entrenado con 1,100 millones de máscaras (SA-1B), funciona sin reentrenar.</p></div>
+      <div class="mv"><div class="sam"><img src="assets/generated/hero.jpg" alt=""><img class="lyr one" id="msOne" src="assets/generated/hero_things.png" alt=""><i class="clk" id="msClk"></i></div></div></div></div>
+  <div class="vp" data-p="5">
+    <table class="cmpt">
+      <thead><tr><th></th><th>U-Net</th><th>FCN</th><th>SegNet</th><th>DeepLab v3+</th><th>Mask R-CNN</th><th>SAM</th></tr></thead>
+      <tbody>
+        <tr><th>Tipo</th><td>semántica</td><td>semántica</td><td>semántica</td><td>semántica</td><td>instancias</td><td>lo que se señale</td></tr>
+        <tr><th>Cómo agranda</th><td>conv transpuesta</td><td>× 2, × 2, × 8</td><td>unpooling con índices</td><td>bilineal × 4, × 4</td><td>por caja (28 × 28)</td><td>decoder transformer</td></tr>
+        <tr><th>Qué copia del encoder</th><td>mapas completos</td><td>puntajes (suma)</td><td>posiciones del máximo</td><td>un mapa de 1/4</td><td>mapas FPN</td><td>embedding de la imagen</td></tr>
+        <tr><th>Idea clave</th><td>skips por nivel</td><td>quitar las densas</td><td>poca memoria</td><td>conv dilatada + ASPP</td><td>detectar y luego segmentar</td><td>pistas, sin clases</td></tr>
+        <tr><th>Bueno para</th><td>pocos datos, imágenes médicas</td><td>la idea base</td><td>dispositivos chicos</td><td>escenas grandes</td><td>contar objetos</td><td>etiquetar rápido</td></tr>
+      </tbody>
+    </table>
   </div>
+  <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i><i data-s="4" hidden></i><i data-s="5" hidden></i>
 </section>
 
-<!-- 13 FIN -->
+<!-- 12 FIN -->
 <section class="scene dark" id="fin" data-tr="pix">
   <canvas id="finCv" width="1920" height="1080" aria-hidden="true"></canvas>
   <div class="recap">
-    <div><b>1</b><span>Quitar las densas</span><em>FCN</em></div>
-    <div><b>2</b><span>Comprimir y reconstruir</span><em>encoder–decoder</em></div>
-    <div><b>3</b><span>Copiar el detalle</span><em>U-Net</em></div>
+    <div><b>1</b><span>Bajar</span><em>conv + pool: qué hay</em></div>
+    <div><b>2</b><span>Subir</span><em>conv transpuesta: tamaño</em></div>
+    <div><b>3</b><span>Copiar</span><em>skips: dónde está</em></div>
   </div>
   <div class="bye"><h2>¿Preguntas?</h2><p class="mono">github.com/Mmateo101/Segmentation_presentation</p></div>
 </section>

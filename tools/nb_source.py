@@ -17,6 +17,7 @@
 # | 6 | Entrenamiento |
 # | 7 | Evaluación (IoU) |
 # | 8 | Imágenes para la presentación |
+# | 9 | Paso a paso por dentro de la U-Net |
 #
 # **Colab:** *Entorno de ejecución → Cambiar tipo → GPU* y luego *Ejecutar todo* (~5 min). Al final se descarga
 # `presentation_assets.zip`; descomprímelo dentro de `assets/generated/`.
@@ -496,6 +497,105 @@ for kind, ids in picks.items():
         save_png(colorize(pred_plain[i]), f'ex_{tag}_plain.png')
         STATS['examples'].append({'tag': tag, 'kind': kind, 'acc': round(per_img[i], 4)})
 print(STATS['examples'])
+
+# %% [markdown]
+# ## 9. Paso a paso por dentro de la U-Net
+#
+# Pasamos la foto principal por la U-Net entrenada y guardamos lo que sale de **cada operación**: la primera
+# convolución, BatchNorm + ReLU, max pooling, la convolución transpuesta, la concatenación y el softmax final.
+# Así la presentación puede explicar cada paso con los números reales de la red.
+
+# %%
+STEP_LAYERS = ['enc1_conv1', 'enc1_bn1', 'enc1_relu1', 'enc1_relu2', 'pool1', 'bottleneck_relu2',
+               'up4', 'enc4_relu2', 'dec4_relu2', 'up1', 'dec1_relu2', 'classes']
+probe = keras.Model(unet.input, [unet.get_layer(n).output for n in STEP_LAYERS])
+xh = X_test[HERO:HERO + 1].astype(np.float32) / 255.0
+T = {n: o[0] for n, o in zip(STEP_LAYERS, probe.predict(xh, verbose=0))}
+for n, t in T.items():
+    print(f'{n:18s} {t.shape}')
+
+def r2(a):
+    return np.round(np.asarray(a, dtype=float), 2).tolist()
+
+def most_active(t):
+    """Canal con más contraste (desviación estándar más alta)."""
+    return int(np.argmax(t.reshape(-1, t.shape[-1]).std(0)))
+
+def to_magma(a):
+    a = (a - a.min()) / (a.max() - a.min() + 1e-6)
+    return (cmap(a)[..., :3] * 255).astype(np.uint8)
+
+def to_diverging(a):
+    """Negativos en azul, positivos en coral, cero en negro."""
+    m = np.abs(a).max() + 1e-6
+    neg, pos = np.clip(-a / m, 0, 1), np.clip(a / m, 0, 1)
+    blue, coral = np.array([58, 134, 255]), np.array([255, 77, 109])
+    return (neg[..., None] * blue + pos[..., None] * coral).astype(np.uint8)
+
+# Paso 0: la entrada son 3 canales (R, G, B)
+for k, ch in enumerate('rgb'):
+    tint = np.zeros((H, W, 3), np.uint8); tint[..., k] = X_test[HERO][..., k]
+    save_png(tint, f'step_in_{ch}.png')
+
+# Paso 1: convolución 3x3. Guardamos un filtro real (3 x 3 x 3 pesos) y un parche de 5 x 5 píxeles.
+c1 = most_active(T['enc1_relu1'])
+kernel = unet.get_layer('enc1_conv1').get_weights()[0][..., c1]                 # 3 x 3 x 3
+edge = np.argwhere(np.isin(Y_test[HERO], [8]))                                 # un punto sobre el auto
+r0, q0 = (edge[len(edge) // 2] if len(edge) else (H // 2, W // 2))
+r0, q0 = int(np.clip(r0, 3, H - 4)), int(np.clip(q0, 3, W - 4))
+patch = X_test[HERO][r0 - 2:r0 + 3, q0 - 2:q0 + 3]                            # 5 x 5 x 3
+out3 = T['enc1_conv1'][r0 - 1:r0 + 2, q0 - 1:q0 + 2, c1]                      # 3 x 3 resultados reales
+check = float((patch[0:3, 0:3] / 255.0 * kernel).sum())
+print(f'conv en la esquina: a mano {check:.3f} | red {out3[0, 0]:.3f}')
+STATS['conv_demo'] = {'pos': [r0, q0], 'channel': c1, 'patch': patch.astype(int).tolist(),
+                      'kernel': r2(kernel), 'out': r2(out3)}
+save_png(to_diverging(T['enc1_conv1'][..., c1]), 'step_conv.png')
+# Paso 2: BatchNorm y ReLU sobre ese mismo canal
+save_png(to_diverging(T['enc1_bn1'][..., c1]), 'step_bn.png')
+save_png(to_magma(T['enc1_relu1'][..., c1]), 'step_relu.png')
+STATS['relu_zero'] = round(float((T['enc1_relu1'][..., c1] == 0).mean()), 3)
+
+# Paso 3: la segunda convolución deja 16 mapas de 192 x 256 (mosaico de 4 x 4)
+f16 = T['enc1_relu2']
+tiles = [np.array(Image.fromarray(to_magma(f16[..., k])).resize((128, 96))) for k in range(16)]
+save_png(np.concatenate([np.concatenate(tiles[r * 4:(r + 1) * 4], 1) for r in range(4)], 0), 'step_16maps.png')
+
+# Paso 4: max pooling 2x2 en un parche de 8 x 8 del canal más activo
+c2 = most_active(f16)
+a2 = f16[..., c2]
+# la ventana de 8 x 8 (en posiciones pares) con más contraste
+best_std, pr, pq = -1, 0, 0
+for i in range(0, H - 8, 2):
+    for j in range(0, W - 8, 2):
+        sd = a2[i:i + 8, j:j + 8].std()
+        if sd > best_std:
+            best_std, pr, pq = sd, i, j
+p8 = a2[pr:pr + 8, pq:pq + 8]
+STATS['pool_demo'] = {'pos': [pr, pq], 'channel': c2, 'patch': r2(p8),
+                      'out': r2(p8.reshape(4, 2, 4, 2).max((1, 3)))}
+save_png(to_magma(a2), 'step_prepool.png')
+save_png(to_magma(T['pool1'][..., c2]), 'step_pool.png')
+
+# Pasos del decoder: conv transpuesta, concatenación (skip) y convoluciones
+for lv, up, enc, dec in [(4, 'up4', 'enc4_relu2', 'dec4_relu2'), (1, 'up1', 'enc1_relu2', 'dec1_relu2')]:
+    save_png(to_magma(T[up][..., most_active(T[up])]), f'step_up{lv}.png')
+    save_png(to_magma(T[enc][..., most_active(T[enc])]), f'step_skip{lv}.png')
+    save_png(to_magma(T[dec][..., most_active(T[dec])]), f'step_dec{lv}.png')
+save_png(to_magma(T['bottleneck_relu2'][..., most_active(T['bottleneck_relu2'])]), 'step_bottleneck.png')
+
+# Último paso: conv 1x1 + softmax = una probabilidad por clase en cada píxel
+STATS['prob_maps'] = []
+for c in [8, 3, 0, 9, 5]:
+    p = T['classes'][..., c]
+    rgba = np.zeros((H, W, 4), np.uint8); rgba[..., :3] = PALETTE[c]; rgba[..., 3] = (p * 255).astype(np.uint8)
+    save_png(rgba, f'step_prob_{c}.png')
+    STATS['prob_maps'].append({'cls': c, 'max': round(float(p.max()), 3)})
+
+# La red completa, capa por capa (para el mapa de la arquitectura)
+STATS['layer_shapes'] = [{'name': l.name, 'shape': [int(d) for d in l.output.shape[1:]]}
+                         for l in unet.layers if any(l.name.endswith(s) for s in ('relu2', 'pool1', 'pool2', 'pool3', 'pool4'))
+                         or l.name.startswith(('up', 'skip')) or l.name == 'classes']
+print(STATS['layer_shapes'])
 
 # %% [markdown]
 # ### Exportar `stats.js`
