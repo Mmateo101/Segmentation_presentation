@@ -153,6 +153,7 @@ STATS['pixel_freq'] = [round(float(f), 5) for f in freq]
 #
 # - Reducimos a **192 × 256** para que entrene rápido.
 # - Las máscaras se reducen con *nearest* (vecino más cercano) para no inventar clases intermedias.
+# - **Aumento de datos:** espejo horizontal y cambios de brillo/contraste (las fotos de *test* son más oscuras).
 # - **Pesos por clase:** como hay muchísima más calle que postes, cada píxel pesa más si su clase es rara
 #   (*median frequency balancing*, como en SegNet). Los píxeles sin etiqueta pesan 0.
 
@@ -177,8 +178,12 @@ def make_dataset(X, Y, training):
     def prep(x, y):
         x = tf.cast(x, tf.float32) / 255.0
         y = tf.cast(y, tf.int32)
-        if training and tf.random.uniform(()) > 0.5:          # espejo horizontal
-            x, y = tf.image.flip_left_right(x), tf.reverse(y, axis=[1])
+        if training:
+            if tf.random.uniform(()) > 0.5:                   # espejo horizontal
+                x, y = tf.image.flip_left_right(x), tf.reverse(y, axis=[1])
+            x = tf.image.random_brightness(x, 0.25)           # más clara o más oscura
+            x = tf.image.random_contrast(x, 0.6, 1.4)
+            x = tf.clip_by_value(x, 0.0, 1.0)
         w = tf.gather(tf.constant(class_weights, tf.float32), y)
         y = tf.minimum(y, N_CLASSES - 1)                      # VOID se vuelve una clase válida pero con peso 0
         return x, y, w
@@ -247,6 +252,9 @@ print(STATS['levels'])
 #
 # Una pequeña función calcula la IoU con una matriz de confusión. En cada época guardamos la predicción sobre una
 # misma foto de prueba, para ver cómo "aprende a ver" la red.
+#
+# - La tasa de aprendizaje baja poco a poco (*cosine decay*), lo que estabiliza el final del entrenamiento.
+# - Al terminar nos quedamos con los pesos de la época con **mejor mIoU en validación** (no con los de la última).
 
 # %%
 def confusion(y_true, y_pred):
@@ -270,10 +278,12 @@ HERO = int(np.argmax([score(m) for m in Y_test]))
 print('foto principal:', Path(splits['test'][0][HERO]).name)
 
 class Tracker(keras.callbacks.Callback):
-    """Guarda, en cada época, la predicción sobre la foto principal y el mIoU de validación."""
+    """Guarda, en cada época, la predicción sobre la foto principal y el mIoU de validación,
+    y al final deja en el modelo los pesos de la mejor época."""
     def __init__(self):
         super().__init__()
         self.frames, self.miou = [], []
+        self.best, self.best_weights, self.best_epoch = -1, None, 0
     def snap(self):
         self.frames.append(np.argmax(predict(self.model, X_test[HERO:HERO + 1])[0], -1))
     def on_train_begin(self, logs=None):
@@ -282,10 +292,16 @@ class Tracker(keras.callbacks.Callback):
         self.snap()
         cm = confusion(Y_val, np.argmax(predict(self.model, X_val), -1))
         self.miou.append(float(np.nanmean(iou_from_confusion(cm))))
+        if self.miou[-1] > self.best:
+            self.best, self.best_weights, self.best_epoch = self.miou[-1], self.model.get_weights(), epoch + 1
         print(f'  época {epoch + 1}: val mIoU = {self.miou[-1]:.3f}')
+    def on_train_end(self, logs=None):
+        self.model.set_weights(self.best_weights)
+        print(f'  mejor época: {self.best_epoch} (val mIoU = {self.best:.3f})')
 
 def train(model):
-    model.compile(optimizer=keras.optimizers.Adam(1e-3), loss='sparse_categorical_crossentropy')
+    lr = keras.optimizers.schedules.CosineDecay(1e-3, decay_steps=EPOCHS * len(train_ds), alpha=0.05)
+    model.compile(optimizer=keras.optimizers.Adam(lr), loss='sparse_categorical_crossentropy')
     tracker = Tracker()
     t0 = time.time()
     hist = model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=[tracker], verbose=2)
@@ -311,6 +327,7 @@ STATS['history'] = {k: {'loss': [round(v, 4) for v in h['loss']], 'val_loss': [r
                         'miou': [round(v, 4) for v in t.miou]}
                     for k, h, t in [('unet', hist_unet, track_unet), ('plain', hist_plain, track_plain)]}
 STATS['epochs'] = EPOCHS
+STATS['best_epoch'] = {'unet': track_unet.best_epoch, 'plain': track_plain.best_epoch}
 
 # %% [markdown]
 # ## 7. Evaluación en *test*
