@@ -18,6 +18,7 @@
 # | 7 | Evaluación (IoU) |
 # | 8 | Imágenes para la presentación |
 # | 9 | Paso a paso por dentro de la U-Net |
+# | 10 | Los 16 filtros y qué se entrena |
 #
 # **Colab:** *Entorno de ejecución → Cambiar tipo → GPU* y luego *Ejecutar todo* (~5 min). Al final se descarga
 # `presentation_assets.zip`; descomprímelo dentro de `assets/generated/`.
@@ -596,6 +597,47 @@ STATS['layer_shapes'] = [{'name': l.name, 'shape': [int(d) for d in l.output.sha
                          for l in unet.layers if any(l.name.endswith(s) for s in ('relu2', 'pool1', 'pool2', 'pool3', 'pool4'))
                          or l.name.startswith(('up', 'skip')) or l.name == 'classes']
 print(STATS['layer_shapes'])
+
+# %% [markdown]
+# ## 10. Los 16 filtros y qué se entrena
+#
+# - La primera convolución tiene **16 filtros** de 3 × 3 × 3. Cada filtro produce un mapa; por eso la salida es
+#   192 × 256 × **16**. Guardamos los 16 filtros (como imágenes de 3 × 3 píxeles) y sus 16 mapas.
+# - Contamos qué pesos **se entrenan** (los cambia el optimizador) y cuáles **no** (BatchNorm guarda una media y
+#   una varianza que se calculan, no se aprenden). Max pooling, ReLU, concatenar y softmax no tienen pesos.
+
+# %%
+first = keras.Model(unet.input, unet.get_layer('enc1_conv1').output)
+c1_maps = first.predict(X_test[HERO:HERO + 1].astype(np.float32) / 255.0, verbose=0)[0]       # 192 x 256 x 16
+k1 = unet.get_layer('enc1_conv1').get_weights()[0]                                               # 3 x 3 x 3 x 16
+
+def diverging(a):
+    m = np.abs(a).max() + 1e-6
+    neg, pos = np.clip(-a / m, 0, 1), np.clip(a / m, 0, 1)
+    return (neg[..., None] * np.array([58, 134, 255]) + pos[..., None] * np.array([255, 77, 109])).astype(np.uint8)
+
+tiles = [np.array(Image.fromarray(diverging(c1_maps[..., k])).resize((128, 96))) for k in range(16)]
+Image.fromarray(np.concatenate([np.concatenate(tiles[r * 4:(r + 1) * 4], 1) for r in range(4)], 0)).save(ASSETS / 'step_conv16.png')
+kern_rgb = []
+for k in range(16):
+    w = k1[..., k]
+    w = (w - w.min()) / (w.max() - w.min() + 1e-6)                 # cada filtro visto como una mini imagen RGB
+    kern_rgb.append((w * 255).astype(int).tolist())
+STATS['conv1_kernels'] = kern_rgb
+
+groups = {}
+for layer in unet.layers:
+    kind = type(layer).__name__
+    if kind == 'Conv2D':
+        kind = 'conv1x1' if layer.kernel_size == (1, 1) else 'conv3x3'
+    for w in layer.weights:
+        part = w.name.split('/')[-1].split(':')[0]
+        key = f"{kind}.{part}.{'train' if w.trainable else 'fixed'}"
+        groups[key] = groups.get(key, 0) + int(np.prod(w.shape))
+for k, v in groups.items():
+    print(f'{k:40s} {v:>10,}')
+STATS['params_detail'] = groups
+print('total:', sum(groups.values()), '=', unet.count_params())
 
 # %% [markdown]
 # ### Exportar `stats.js`

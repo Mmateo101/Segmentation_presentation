@@ -68,119 +68,215 @@
   <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i><i data-s="4" hidden></i><i data-s="5" hidden></i><i data-s="6" hidden></i><i data-s="7" hidden></i>
 </section>
 
-<!-- 04 PASO A PASO · ENCODER -->
-<section class="scene light pp" id="enc" data-tr="door">
-  <div class="hd"><p class="eyebrow">Paso a paso · parte 1 de 3</p><h2 class="ttl">El <em>encoder</em>: bajar por la U</h2></div>
+<!-- ============ PASO A PASO: una diapositiva por operación ============ -->
+
+<!-- P1 LA IMAGEN -->
+<section class="scene light pp" id="p01" data-tr="door">
+  <div class="hd"><p class="eyebrow">Paso 1 de 16 · encoder</p><h2 class="ttl">La <em>imagen</em></h2></div>
   <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
-  <div class="pane" data-p="0">
-    <div class="tx"><p class="no">Paso 1</p><h3>La entrada</h3><p>La red recibe la foto como <b>3 matrices de números</b> (rojo, verde y azul), con valores de 0 a 1.</p><p class="shape">192 × 256 × 3</p></div>
+  <div class="body">
+    <div class="tx"><p>3 matrices de números, una por color.</p><p class="shape">192 × 256 × 3</p></div>
     <div class="vis in3">
-      <div class="ph"><img src="assets/generated/hero.jpg" alt=""></div>
+      <div class="ph"><img src="assets/generated/hero.jpg" alt=""><i class="zb" id="inBox"></i></div>
       <div class="chs"><img src="assets/generated/step_in_r.png" alt="Canal rojo"><img src="assets/generated/step_in_g.png" alt="Canal verde"><img src="assets/generated/step_in_b.png" alt="Canal azul"></div>
       <div class="chl"><span>R</span><span>G</span><span>B</span></div>
+      <div class="nums"><p class="cap">de cerca: 5 × 5 píxeles, sus 3 números</p><div class="n3" id="inNums"></div></div>
     </div>
   </div>
-  <div class="pane" data-p="1">
-    <div class="tx"><p class="no">Paso 2</p><h3>Convolución 3&nbsp;×&nbsp;3</h3><p>Un filtro de <b>3 × 3 × 3 = 27 pesos</b> aprendidos recorre la foto. En cada posición: multiplicar y sumar.</p>
-      <div class="tex" data-plain="y = Σ w · x" data-tex="y = \sum_{i,j,c} w_{i,j,c}\, x_{i,j,c}"></div>
-      <ul class="vars"><li><b>w</b> = peso del filtro</li><li><b>x</b> = valor del píxel</li><li><b>i, j</b> = fila y columna dentro del 3 × 3</li><li><b>c</b> = canal (R, G, B)</li></ul>
-      <p class="shape">16 filtros → 16 mapas</p></div>
-    <div class="vis cv">
-      <div class="g5" id="cvPatch"></div><b class="op">⊛</b>
-      <div class="g3k" id="cvKern"></div><b class="op">=</b>
-      <div class="g3o" id="cvOut"></div>
-      <p class="cvn">Números reales de la red. Se muestra la capa <b>R</b> del filtro; las 3 capas se suman.</p>
-      <div class="cvmap"><img src="assets/generated/step_conv.png" alt="Mapa que sale de un filtro"><i id="cvDot"></i><span>salida de este filtro · 192 × 256</span></div>
-    </div>
-  </div>
-  <div class="pane" data-p="2">
-    <div class="tx"><p class="no">Paso 3</p><h3>BatchNorm + ReLU</h3><p><b>BatchNorm</b> centra y escala los valores. <b>ReLU</b> cambia los negativos (azul) por 0 y deja pasar los positivos.</p>
-      <div class="tex" data-plain="ReLU(x) = max(0, x)" data-tex="\text{ReLU}(x) = \max(0,\, x)"></div>
-      <p class="shape"><span id="reluZ">0%</span> de los valores quedan en 0</p></div>
-    <div class="vis br">
-      <figure><img src="assets/generated/step_bn.png" alt=""><figcaption>después de conv + BatchNorm</figcaption></figure>
-      <svg class="relu" viewBox="0 0 220 220" aria-label="Gráfica de ReLU"><line x1="10" y1="160" x2="210" y2="160"/><line x1="110" y1="10" x2="110" y2="210"/><path d="M10 160 L110 160 L200 40"/><text x="200" y="64" text-anchor="end">ReLU</text></svg>
-      <figure><img src="assets/generated/step_relu.png" alt=""><figcaption>después de ReLU</figcaption></figure>
-    </div>
-  </div>
-  <div class="pane" data-p="3">
-    <div class="tx"><p class="no">Paso 4</p><h3>Otra convolución</h3><p>Una segunda conv 3 × 3 (+ BatchNorm + ReLU). Salen <b>16 mapas</b>; cada uno responde a un patrón distinto: bordes, cielo, sombras…</p><p class="shape">192 × 256 × 16</p></div>
-    <div class="vis m16"><img src="assets/generated/step_16maps.png" alt="Los 16 mapas del primer nivel"></div>
-  </div>
-  <div class="pane" data-p="4">
-    <div class="tx"><p class="no">Paso 5</p><h3>Max pooling 2&nbsp;×&nbsp;2</h3><p>De cada cuadro de 2 × 2 se queda el <b>máximo</b>. El mapa se reduce a la mitad; el número de canales no cambia.</p><p class="shape">192 × 256 × 16 → 96 × 128 × 16</p></div>
-    <div class="vis mp">
-      <div class="g8" id="mpIn"></div><b class="op">→</b><div class="g4" id="mpOut"></div>
-      <figure class="a"><img src="assets/generated/step_prepool.png" alt=""><figcaption>192 × 256</figcaption></figure>
-      <figure class="b"><img class="pix" src="assets/generated/step_pool.png" alt=""><figcaption>96 × 128</figcaption></figure>
-    </div>
-  </div>
-  <div class="pane" data-p="5">
-    <div class="tx"><p class="no">Paso 6</p><h3>Repetir 4 veces</h3><p>Conv, conv, pool… en cada nivel el tamaño <b>÷ 2</b> y los canales <b>× 2</b>. En el fondo de la U (el <b>cuello de botella</b>) la red sabe <b>qué</b> hay, pero con muy poca resolución.</p><p class="shape">12 × 16 × 256</p></div>
-    <div class="vis rep" id="encRep"></div>
-  </div>
-  <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i><i data-s="4" hidden></i><i data-s="5" hidden></i>
+  
 </section>
 
-<!-- 05 PASO A PASO · DECODER -->
-<section class="scene light pp" id="dec" data-tr="diag">
-  <div class="hd"><p class="eyebrow">Paso a paso · parte 2 de 3</p><h2 class="ttl">El <em>decoder</em>: subir por la U</h2></div>
+<!-- P2 LA CONVOLUCIÓN -->
+<section class="scene light pp" id="p02" data-tr="zoom">
+  <div class="hd"><p class="eyebrow">Paso 2 de 16 · encoder</p><h2 class="ttl">La convolución: <em>la ventanita</em></h2></div>
   <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
-  <div class="pane" data-p="0">
-    <div class="tx"><p class="no">Paso 7</p><h3>Convolución transpuesta 2&nbsp;×&nbsp;2</h3><p>Cada valor se multiplica por un kernel de 2 × 2 <b>aprendido</b> y ocupa un cuadro de 2 × 2. Tamaño <b>× 2</b>, canales <b>÷ 2</b>.</p><p class="shape">12 × 16 × 256 → 24 × 32 × 128</p></div>
+  <div class="body">
+    <div class="tx"><p>Multiplicar y sumar en cada posición.</p><div class="tex" data-plain="y = Σ w · x" data-tex="y = \sum w\, x"></div><p class="shape">3 × 3 × 3 = 27 pesos</p></div>
+    <div class="vis cv">
+      <div class="lbl l1">píxeles (5 × 5)</div><div class="lbl l2">filtro · R, G, B</div><div class="lbl l3">resultado</div>
+      <div class="g5" id="cvPatch"></div>
+      <div class="ks"><div class="g3k" data-c="0"></div><div class="g3k" data-c="1"></div><div class="g3k" data-c="2"></div></div>
+      <div class="g3o" id="cvOut"></div>
+      <div class="calc" id="cvCalc"></div>
+      <div class="cvmap"><img src="assets/generated/hero.jpg" alt=""><i id="cvDot"></i></div>
+    </div>
+  </div>
+</section>
+
+<!-- P3 ¿QUÉ ES EL 16? -->
+<section class="scene light pp" id="p03" data-tr="diag">
+  <div class="hd"><p class="eyebrow">Paso 3 de 16 · encoder</p><h2 class="ttl">¿Qué quiere decir <em>el 16</em>?</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>16 filtros → 16 mapas.</p><p class="shape">192 × 256 × 16</p></div>
+    <div class="vis k16">
+      <div class="kg"><p class="cap">los 16 filtros aprendidos</p><div class="kgrid" id="k16"></div></div>
+      <b class="op">→</b>
+      <div class="mg"><p class="cap">sus 16 mapas</p><div class="mgw"><img src="assets/generated/step_conv16.png" alt="Los 16 mapas que salen de la primera convolución"><i id="k16hl"></i></div></div>
+    </div>
+  </div>
+  
+</section>
+
+<!-- P4 BATCHNORM + RELU -->
+<section class="scene light pp" id="p04" data-tr="door">
+  <div class="hd"><p class="eyebrow">Paso 4 de 16 · encoder</p><h2 class="ttl">BatchNorm + <em>ReLU</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Los negativos se vuelven 0.</p><div class="tex" data-plain="ReLU(x) = max(0, x)" data-tex="\max(0,\, x)"></div><p class="shape"><span id="reluZ">0%</span> en 0</p></div>
+    <div class="vis br">
+      <div class="sw"><img src="assets/generated/step_bn.png" alt="Después de conv y BatchNorm"><div class="aft"><img src="assets/generated/step_relu.png" alt="Después de ReLU"></div><i class="line"></i><span class="l">antes</span><span class="r">ReLU</span></div>
+      <svg class="relu" viewBox="0 0 240 240" aria-label="Gráfica de ReLU"><line x1="10" y1="170" x2="230" y2="170"/><line x1="120" y1="10" x2="120" y2="230"/><path d="M10 170 L120 170 L220 50"/><circle id="reluDot" r="10"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- P5 SEGUNDA CONVOLUCIÓN -->
+<section class="scene light pp" id="p05" data-tr="rise">
+  <div class="hd"><p class="eyebrow">Paso 5 de 16 · encoder</p><h2 class="ttl">La <em>segunda</em> convolución</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Cada filtro ve los 16 mapas.</p><p class="shape">3 × 3 × 16 = 144 pesos</p></div>
+    <div class="vis c2"><svg id="c2Svg" viewBox="0 0 460 460" aria-label="Un filtro de 3 por 3 por 16 atraviesa los 16 mapas y da un número"></svg>
+      <figure><img src="assets/generated/step_16maps.png" alt="Los 16 mapas del primer nivel"><figcaption>los 16 mapas que salen · 192 × 256 × 16</figcaption></figure></div>
+  </div>
+</section>
+
+<!-- P6 MAX POOLING -->
+<section class="scene light pp" id="p06" data-tr="door">
+  <div class="hd"><p class="eyebrow">Paso 6 de 16 · encoder</p><h2 class="ttl">Max <em>pooling</em> 2 × 2</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>El máximo de cada 2 × 2.</p><p class="shape">192 × 256 → 96 × 128</p><p class="tag0">sin pesos</p></div>
+    <div class="vis mp">
+      <div class="g8" id="mpIn"></div><b class="op">→</b><div class="g4" id="mpOut"></div>
+      <figure class="a"><img src="assets/generated/step_prepool.png" alt=""><figcaption>un mapa · 192 × 256</figcaption></figure>
+      <figure class="b"><img class="pix" src="assets/generated/step_pool.png" alt=""><figcaption>después del pool · 96 × 128</figcaption></figure>
+    </div>
+  </div>
+</section>
+
+<!-- P7 BAJAR 4 VECES -->
+<section class="scene light pp" id="p07" data-tr="diag">
+  <div class="hd"><p class="eyebrow">Paso 7 de 16 · encoder</p><h2 class="ttl">Bajar <em>4 veces</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Tamaño ÷ 2, filtros × 2.</p></div>
+    <div class="vis rep"><div class="slabs" id="encRep"></div><table class="lvt" id="lvTab"></table></div>
+  </div>
+</section>
+
+<!-- P8 CUELLO DE BOTELLA -->
+<section class="scene dark pp" id="p08" data-tr="zoom">
+  <div class="hd"><p class="eyebrow">Paso 8 de 16 · el fondo de la U</p><h2 class="ttl">El cuello de <em>botella</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Sabe <b>qué</b> hay, no <b>dónde</b>.</p><p class="shape">12 × 16 × 256</p></div>
+    <div class="vis bt">
+      <div class="pz"><img src="assets/generated/hero.jpg" alt=""><div class="grid12"></div><i class="cellhl" id="btHl"></i></div>
+      <div class="fm4"><p class="cap">4 de sus 256 mapas</p><div><img class="pix" src="assets/generated/fmap_4_0.png" alt=""><img class="pix" src="assets/generated/fmap_4_1.png" alt=""><img class="pix" src="assets/generated/fmap_4_2.png" alt=""><img class="pix" src="assets/generated/fmap_4_3.png" alt=""></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- P9 CONVOLUCIÓN TRANSPUESTA -->
+<section class="scene light pp" id="p09" data-tr="flip">
+  <div class="hd"><p class="eyebrow">Paso 9 de 16 · decoder</p><h2 class="ttl">Convolución <em>transpuesta</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Cada valor → un cuadro de 2 × 2.</p><p class="shape">12 × 16 → 24 × 32</p></div>
     <div class="vis tc">
       <div class="toy"><div class="gin"></div><b class="op">→</b><div class="gout"></div><div class="kern"><span>kernel</span><div class="gk"></div><em id="tcEq"></em></div></div>
       <figure class="a"><img class="pix" src="assets/generated/step_bottleneck.png" alt=""><figcaption>12 × 16</figcaption></figure><b class="op big">→</b>
       <figure class="b"><img class="pix" src="assets/generated/step_up4.png" alt=""><figcaption>24 × 32</figcaption></figure>
     </div>
   </div>
-  <div class="pane" data-p="1">
-    <div class="tx"><p class="no">Paso 8</p><h3>Concatenar (skip)</h3><p>Se pega el mapa del encoder <b>del mismo tamaño</b> como canales extra. Trae los detalles que se perdieron al reducir.</p><p class="shape">128 + 128 = 256 canales</p></div>
+</section>
+
+<!-- P10 CONCATENAR -->
+<section class="scene light pp" id="p10" data-tr="door">
+  <div class="hd"><p class="eyebrow">Paso 10 de 16 · decoder</p><h2 class="ttl">Concatenar: la <em>skip</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Pegar la copia del encoder.</p><p class="shape">128 + 128 = 256</p><p class="tag0">sin pesos</p></div>
     <div class="vis ct">
-      <figure><img class="pix" src="assets/generated/step_up4.png" alt=""><figcaption>del decoder · 24 × 32 × 128</figcaption></figure><b class="op">+</b>
+      <figure><img class="pix" src="assets/generated/step_up4.png" alt=""><figcaption>viene de abajo · 24 × 32 × 128</figcaption></figure><b class="op">+</b>
       <figure><img class="pix" src="assets/generated/step_skip4.png" alt=""><figcaption>copia del encoder · 24 × 32 × 128</figcaption></figure><b class="op">=</b>
       <div class="stk2"><img class="pix" src="assets/generated/step_up4.png" alt=""><img class="pix" src="assets/generated/step_skip4.png" alt=""><span>24 × 32 × 256</span></div>
     </div>
   </div>
-  <div class="pane" data-p="2">
-    <div class="tx"><p class="no">Paso 9</p><h3>Dos convoluciones 3&nbsp;×&nbsp;3</h3><p>Mezclan lo que viene de abajo (<b>qué</b> es) con la copia (<b>dónde</b> está).</p><p class="shape">24 × 32 × 256 → 24 × 32 × 128</p></div>
+</section>
+
+<!-- P11 CONVOLUCIONES DEL DECODER -->
+<section class="scene light pp" id="p11" data-tr="rise">
+  <div class="hd"><p class="eyebrow">Paso 11 de 16 · decoder</p><h2 class="ttl">Convoluciones del <em>decoder</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Mezclar <b>qué</b> + <b>dónde</b>.</p><p class="shape">256 → 128 canales</p></div>
     <div class="vis d9"><div class="stk2"><img class="pix" src="assets/generated/step_up4.png" alt=""><img class="pix" src="assets/generated/step_skip4.png" alt=""><span>24 × 32 × 256</span></div><b class="op big">→</b>
       <figure><img class="pix" src="assets/generated/step_dec4.png" alt=""><figcaption>24 × 32 × 128</figcaption></figure></div>
   </div>
-  <div class="pane" data-p="3">
-    <div class="tx"><p class="no">Paso 10</p><h3>Repetir hasta el tamaño original</h3><p>Subir, pegar la copia, dos convoluciones… <b>4 veces</b>. El último nivel recibe la copia de 192 × 256, con todos los bordes finos.</p><p class="shape">192 × 256 × 16</p></div>
-    <div class="vis d10" id="decRep"></div>
-  </div>
-  <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i>
 </section>
 
-<!-- 06 PASO A PASO · SALIDA -->
-<section class="scene dark pp" id="sal" data-tr="flip">
-  <div class="hd"><p class="eyebrow">Paso a paso · parte 3 de 3</p><h2 class="ttl">La <em>salida</em>: una clase por píxel</h2></div>
+<!-- P12 SUBIR HASTA 192 x 256 -->
+<section class="scene light pp" id="p12" data-tr="corner">
+  <div class="hd"><p class="eyebrow">Paso 12 de 16 · decoder</p><h2 class="ttl">Subir hasta <em>192 × 256</em></h2></div>
   <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
-  <div class="pane" data-p="0">
-    <div class="tx"><p class="no">Paso 11</p><h3>Convolución 1&nbsp;×&nbsp;1</h3><p>Un filtro de 1 × 1 mira <b>un solo píxel</b>: combina sus 16 canales en <b>11 puntajes</b>, uno por clase. Es como una capa densa aplicada a cada píxel.</p><p class="shape">192 × 256 × 16 → 192 × 256 × 11</p></div>
+  <div class="body">
+    <div class="tx"><p>Repetir hasta el tamaño original.</p><p class="shape">192 × 256 × 16</p></div>
+    <div class="vis d10" id="decRep"></div>
+  </div>
+</section>
+
+<!-- P13 CONV 1x1 -->
+<section class="scene dark pp" id="p13" data-tr="flip">
+  <div class="hd"><p class="eyebrow">Paso 13 de 16 · salida</p><h2 class="ttl">Convolución <em>1 × 1</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>En cada píxel: 16 → 11 puntajes.</p><p class="shape">192 × 256 × 11</p></div>
     <div class="vis c11"><svg id="c11Svg" viewBox="0 0 1000 560" aria-label="Los 16 canales de un píxel se combinan en 11 puntajes"></svg></div>
   </div>
-  <div class="pane" data-p="1">
-    <div class="tx"><p class="no">Paso 12</p><h3>Softmax</h3><p>Convierte los 11 puntajes de cada píxel en <b>probabilidades que suman 1</b>.</p>
-      <div class="tex" data-plain="p(c) = e^z(c) / Σ e^z(k)" data-tex="p_{c} = \dfrac{e^{z_{c}}}{\sum_{k=1}^{11} e^{z_{k}}}"></div>
-      <ul class="vars"><li><b>z</b> = puntaje de la clase</li><li><b>c</b> = clase</li><li><b>k</b> = recorre las 11 clases</li></ul></div>
+</section>
+
+<!-- P14 SOFTMAX -->
+<section class="scene dark pp" id="p14" data-tr="zoom">
+  <div class="hd"><p class="eyebrow">Paso 14 de 16 · salida</p><h2 class="ttl"><em>Softmax</em> por píxel</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Puntajes → probabilidades.</p><div class="tex" data-plain="p = e^z / Σ e^z" data-tex="p_c = \dfrac{e^{z_c}}{\sum_k e^{z_k}}"></div></div>
     <div class="vis sm">
       <div class="probe noadv" id="smProbe"><img src="assets/generated/hero.jpg" alt=""><i class="cur" id="smCur"></i></div>
       <div class="pbars" id="smBars"><p class="cap">pasa el cursor sobre la foto</p></div>
       <div class="pmaps" id="smMaps"></div>
     </div>
   </div>
-  <div class="pane" data-p="2">
-    <div class="tx"><p class="no">Paso 13</p><h3>La clase más probable</h3><p>Cada píxel toma la clase con mayor probabilidad (<b>argmax</b>). Eso es la máscara.</p><p class="shape">192 × 256 etiquetas</p></div>
+</section>
+
+<!-- P15 ARGMAX -->
+<section class="scene dark pp" id="p15" data-tr="door">
+  <div class="hd"><p class="eyebrow">Paso 15 de 16 · salida</p><h2 class="ttl">La clase más <em>probable</em></h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
+  <div class="body">
+    <div class="tx"><p>Gana la más probable.</p><p class="shape">argmax</p><p class="tag0">sin pesos</p></div>
     <div class="vis am">
-      <figure><img src="assets/generated/hero.jpg" alt=""><img class="ov" src="assets/generated/hero_unet.png" alt=""><figcaption>predicción de la U-Net</figcaption></figure>
-      <figure><img src="assets/generated/hero.jpg" alt=""><img class="ov" src="assets/generated/hero_gt_small.png" alt=""><figcaption>máscara real</figcaption></figure>
+      <div class="sw2"><img src="assets/generated/hero.jpg" alt=""><img class="ov" src="assets/generated/hero_unet.png" alt="Predicción de la U-Net"><div class="aft"><img src="assets/generated/hero.jpg" alt=""><img class="ov" src="assets/generated/hero_gt_small.png" alt="Máscara real"></div><i class="line"></i><span class="l">U-Net</span><span class="r">real</span></div>
     </div>
+  </div>
+</section>
+
+<!-- P16 QUÉ SE ENTRENA -->
+<section class="scene light pp" id="p16" data-tr="circle">
+  <div class="hd"><p class="eyebrow">Paso 16 de 16 · resumen</p><h2 class="ttl">¿Qué se <em>entrena</em> y qué no?</h2></div>
+  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con las capas que tienen pesos resaltadas"></svg>
+  <div class="body tr2">
+    <div class="col yes"><h4>Se entrena</h4><div id="trYes"></div><p class="tot" id="trYesT"></p></div>
+    <div class="col no" data-s="1"><h4>No se entrena</h4><div id="trNo"></div></div>
+    <div class="col hp" data-s="2"><h4>Lo elegimos nosotros</h4>
+      <ul><li><b>3 × 3</b>tamaño del filtro</li><li><b>16 → 256</b>filtros por nivel</li><li><b>4</b>niveles de la U</li><li><b>192 × 256</b>tamaño de entrada</li><li><b>Adam · 0.001</b>optimizador y tasa de aprendizaje</li><li><b id="hpEp">40</b>épocas</li></ul></div>
   </div>
   <i data-s="1" hidden></i><i data-s="2" hidden></i>
 </section>
+
 
 <!-- 07 SKIPS -->
 <section class="scene light" id="skips" data-tr="door">
