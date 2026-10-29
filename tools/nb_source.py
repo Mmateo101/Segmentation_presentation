@@ -20,7 +20,10 @@
 # | 9 | Paso a paso por dentro de la U-Net |
 # | 10 | Los 16 filtros y qué se entrena |
 #
-# **Colab:** *Entorno de ejecución → Cambiar tipo → GPU* y luego *Ejecutar todo* (~5 min). Al final se descarga
+# Por defecto **no entrena**: usa la U-Net ya entrenada que está en `models/` (`ENTRENAR = False`, ~1 min).
+# Para entrenar desde cero, pon `ENTRENAR = True` en la sección 1.
+#
+# **Colab:** *Ejecutar todo*. Con `ENTRENAR = True` conviene *Entorno de ejecución → Cambiar tipo → GPU* (~5 min). Al final se descarga
 # `presentation_assets.zip`; descomprímelo dentro de `assets/generated/`.
 # **Local:** córrelo desde la raíz del repositorio; escribe directo en `assets/generated/` (en CPU tarda más).
 
@@ -36,7 +39,8 @@ for mod, pkg in {'tensorflow': 'tensorflow', 'scipy': 'scipy', 'matplotlib': 'ma
         subprocess.check_call([sys.executable, '-m', 'pip', 'install', '-q', pkg])
 
 # %%
-import os, json, time, glob, shutil
+import os, json, time, glob, shutil, urllib.request
+from types import SimpleNamespace
 from pathlib import Path
 
 import numpy as np
@@ -59,6 +63,13 @@ for p in (WORK, ASSETS):
 
 H, W = 192, 256        # tamaño de entrada de la red (CamVid viene en 360 x 480; misma proporción 3:4)
 EPOCHS = int(os.environ.get('SEG_EPOCHS', 40))
+# False = usar la U-Net ya entrenada (carpeta models/ del repositorio, ~1 min).
+# True  = entrenar las dos redes desde cero (~5 min con GPU, ~80 min en CPU).
+ENTRENAR = False
+if os.environ.get('SEG_ENTRENAR') == '1':
+    ENTRENAR = True
+MODELS = BASE / 'models'
+MODELS_URL = 'https://github.com/Mmateo101/Segmentation_presentation/raw/main/models/'
 BATCH = 8
 
 STATS = {}             # todos los números que usa la presentación terminan aquí (se exporta a stats.js)
@@ -308,19 +319,40 @@ def train(model):
     t0 = time.time()
     hist = model.fit(train_ds, validation_data=val_ds, epochs=EPOCHS, callbacks=[tracker], verbose=2)
     print(f'{model.name}: {(time.time() - t0) / 60:.1f} min')
-    model.save(WORK / f'{model.name}.keras')
+    MODELS.mkdir(exist_ok=True)                                   # pesos + historial + predicción por época
+    model.save(MODELS / f'{model.name}.keras')
+    info = {'loss': hist.history['loss'], 'val_loss': hist.history['val_loss'], 'miou': tracker.miou, 'best_epoch': tracker.best_epoch}
+    (MODELS / f'{model.name}.json').write_text(json.dumps(info))
+    np.savez_compressed(MODELS / f'{model.name}_frames.npz', frames=np.array(tracker.frames, dtype=np.uint8))
     return hist.history, tracker
 
-hist_unet, track_unet = train(unet)
+def load_trained(model):
+    """Carga la red ya entrenada (si no está en models/, la descarga del repositorio)."""
+    MODELS.mkdir(exist_ok=True)
+    for name in [f'{model.name}.keras', f'{model.name}.json', f'{model.name}_frames.npz']:
+        if not (MODELS / name).exists():
+            print('descargando', name)
+            urllib.request.urlretrieve(MODELS_URL + name, MODELS / name)
+    model.set_weights(keras.models.load_model(MODELS / f'{model.name}.keras').get_weights())
+    info = json.loads((MODELS / f'{model.name}.json').read_text())
+    tracker = SimpleNamespace(frames=list(np.load(MODELS / f'{model.name}_frames.npz')['frames']),
+                              miou=info['miou'], best_epoch=info['best_epoch'])
+    print(f'{model.name}: pesos cargados (mejor época {info["best_epoch"]}, val mIoU {max(info["miou"]):.3f})')
+    return {'loss': info['loss'], 'val_loss': info['val_loss']}, tracker
+
+def get_model(model):
+    return train(model) if ENTRENAR else load_trained(model)
+
+hist_unet, track_unet = get_model(unet)
 
 # %%
-hist_plain, track_plain = train(plain)
+hist_plain, track_plain = get_model(plain)
 
 # %%
 fig, ax = plt.subplots(1, 2, figsize=(13, 4))
 for h, t, name, c in [(hist_unet, track_unet, 'U-Net', '#3A86FF'), (hist_plain, track_plain, 'Sin skips', '#FF4D6D')]:
     ax[0].plot(h['loss'], c=c, label=f'{name} train'); ax[0].plot(h['val_loss'], c=c, ls='--', label=f'{name} val')
-    ax[1].plot(range(1, EPOCHS + 1), t.miou, c=c, label=name)
+    ax[1].plot(range(1, len(t.miou) + 1), t.miou, c=c, label=name)
 ax[0].set_title('Pérdida'); ax[1].set_title('mIoU en validación'); ax[0].legend(); ax[1].legend()
 ax[0].set_xlabel('época'); ax[1].set_xlabel('época')
 plt.show()
@@ -328,7 +360,7 @@ plt.show()
 STATS['history'] = {k: {'loss': [round(v, 4) for v in h['loss']], 'val_loss': [round(v, 4) for v in h['val_loss']],
                         'miou': [round(v, 4) for v in t.miou]}
                     for k, h, t in [('unet', hist_unet, track_unet), ('plain', hist_plain, track_plain)]}
-STATS['epochs'] = EPOCHS
+STATS['epochs'] = len(track_unet.miou)
 STATS['best_epoch'] = {'unet': track_unet.best_epoch, 'plain': track_plain.best_epoch}
 
 # %% [markdown]
