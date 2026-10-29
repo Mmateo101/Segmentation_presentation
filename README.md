@@ -39,15 +39,27 @@ En Vercel: **Add New → Project → Import** este repositorio, preset **Other**
 
 ## Notebook
 
-**Google Colab (recomendado):** abre `Segmentation_UNet.ipynb`, elige *GPU* y *Ejecutar todo* (~5 min).
-Al final se descarga `presentation_assets.zip`; descomprímelo dentro de `assets/generated/`.
+Por defecto **no entrena**: carga la U-Net ya entrenada de `models/` y genera todas las imágenes en ~1 min
+(`ENTRENAR = False`, sección 1). Para entrenar las dos redes desde cero, pon `ENTRENAR = True`
+(~5 min con GPU en Colab, ~80 min en CPU); los pesos nuevos se guardan en `models/`.
 
-**Local:** córrelo desde la raíz del repositorio (en CPU tarda ~1.5 h por las 40 épocas de cada red):
+**Google Colab:** abre `Segmentation_UNet.ipynb` y *Ejecutar todo*. Si no encuentra `models/`, descarga los pesos de
+este repositorio. Al final se descarga `presentation_assets.zip`; descomprímelo dentro de `assets/generated/`.
+
+**Local:** desde la raíz del repositorio (escribe directo en `assets/generated/`):
 
 ```bash
 pip install tensorflow scipy matplotlib pillow nbconvert
 python -m jupyter nbconvert --to notebook --execute Segmentation_UNet.ipynb --inplace
 ```
+
+| `models/` | Qué es |
+|---|---|
+| `unet.keras`, `encoder_decoder.keras` | Pesos de la U-Net y de la versión sin skips (40 épocas, mejores pesos en validación) |
+| `*.json` | Pérdida y mIoU de validación por época |
+| `*_frames.npz` | La predicción sobre la foto principal después de cada época |
+
+Resultado en test (233 fotos): **mIoU 0.43** con U-Net contra **0.39** sin skips.
 
 **Datos:** CamVid (Brostow, Fauqueur y Cipolla, 2009), en la versión del repositorio
 [SegNet-Tutorial](https://github.com/alexgkendall/SegNet-Tutorial): 367 fotos de entrenamiento, 101 de validación y
