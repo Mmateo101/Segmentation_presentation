@@ -14,23 +14,35 @@ la **U-Net** por dentro, operación por operación, con una U-Net real entrenada
 
 Sirve la carpeta (`python -m http.server`) y abre `http://localhost:8000`.
 Navegación: clic o →/Espacio para avanzar, ← para regresar, `f` pantalla completa, `#N` en la URL salta a la escena N.
-Algunas escenas son interactivas: las probabilidades por píxel al pasar el cursor (6, paso 12),
-el deslizador de *sin skips vs U-Net* (7), la curva de entrenamiento (9) y las pestañas de arquitecturas (11).
+Algunas son interactivas: las probabilidades por píxel al pasar el cursor (18), la curva de entrenamiento (21)
+y las pestañas de arquitecturas (23). Cada diapositiva de la red muestra un mapa de la U-Net con el paso actual.
 
-| # | Escena |
+| # | Diapositiva |
 |---|---|
 | 1 | Portada: la foto se vuelve píxeles y cada píxel toma su clase |
 | 2 | Qué es segmentar: clasificación, detección, segmentación semántica y de instancias |
-| 3 | La arquitectura U-Net (con los tamaños reales de la red) y las definiciones necesarias |
-| 4 | Paso a paso · encoder: entrada, convolución 3 × 3 con números reales, BatchNorm + ReLU, max pooling, repetir |
-| 5 | Paso a paso · decoder: convolución transpuesta, concatenar (skip), convoluciones, repetir |
-| 6 | Paso a paso · salida: conv 1 × 1, softmax por píxel (interactivo) y argmax |
-| 7 | Para qué sirven las skips (comparación y mIoU en test) |
-| 8 | Cómo se entrena: cross-entropy por píxel e IoU |
-| 9 | Cómo aprende: la predicción después de cada época |
-| 10 | IoU por clase en test y mapa de errores |
-| 11 | Otras arquitecturas: FCN, SegNet, DeepLab v3+, Mask R-CNN y SAM (diagrama, pasos, diferencias y tabla comparativa) |
-| 12 | Resumen y preguntas |
+| 3 | Solo reducir (detección) vs. reducir y ampliar (U-Net) |
+| 4 | La arquitectura U-Net y las definiciones necesarias |
+| 5 | Paso 1 · la imagen |
+| 6 | Paso 2 · un filtro: la ventanita recorre la foto y pinta un mapa |
+| 7 | Paso 3 · 16 ventanitas → 16 mapas |
+| 8 | Paso 4 · BatchNorm + ReLU |
+| 9 | Paso 5 · la segunda convolución (3 × 3 × 16) |
+| 10 | Paso 6 · max pooling sobre cada mapa |
+| 11 | Paso 7 · bajar 4 veces |
+| 12 | Paso 8 · el cuello de botella |
+| 13 | Paso 9 · convolución transpuesta |
+| 14 | Paso 10 · concatenar (skip) |
+| 15 | Paso 11 · convoluciones del decoder |
+| 16 | Paso 12 · subir hasta 192 × 256 |
+| 17 | Paso 13 · conv 1 × 1 |
+| 18 | Paso 14 · softmax por píxel (interactivo) |
+| 19 | Paso 15 · argmax |
+| 20 | Paso 16 · qué se entrena y qué no |
+| 21 | Cómo aprende: la predicción después de cada época, junto a la máscara real |
+| 22 | IoU por clase en test y mapa de errores |
+| 23 | Otras arquitecturas: FCN, SegNet, DeepLab v3+, Mask R-CNN y SAM |
+| 24 | Resumen y preguntas |
 
 ### Publicar en Vercel
 

@@ -50,6 +50,12 @@
   <i data-s="1" hidden></i><i data-s="2" hidden></i><i data-s="3" hidden></i>
 </section>
 
+<!-- 03a REDUCIR vs REDUCIR Y AMPLIAR -->
+<section class="scene dark" id="vs" data-tr="diag">
+  <div class="hd"><p class="eyebrow">Antes de la U-Net</p><h2 class="ttl">Solo reducir <em>vs.</em> reducir y ampliar</h2></div>
+  <svg class="vsd" id="vsSvg" viewBox="0 0 1664 700" role="img" aria-label="Una red de detección solo reduce la imagen y termina en cajas; la U-Net la reduce y luego la amplía hasta una máscara"></svg>
+</section>
+
 <!-- 03 LA ARQUITECTURA + DEFINICIONES -->
 <section class="scene dark" id="arq" data-tr="zoom">
   <div class="hd"><p class="eyebrow">Ronneberger, Fischer y Brox, 2015</p><h2 class="ttl">La arquitectura <em>U-Net</em></h2></div>
@@ -88,27 +94,27 @@
 
 <!-- P2 LA CONVOLUCIÓN -->
 <section class="scene light pp" id="p02" data-tr="zoom">
-  <div class="hd"><p class="eyebrow">Paso 2 de 16 · encoder</p><h2 class="ttl">Convolución: <em>la ventanita</em></h2></div>
+  <div class="hd"><p class="eyebrow">Paso 2 de 16 · encoder</p><h2 class="ttl">Un filtro: <em>la ventanita</em></h2></div>
   <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
   <div class="body">
-    <div class="tx"><p>Multiplicar y sumar en cada posición.</p><div class="tex" data-plain="y = Σ w · x" data-tex="y = \sum w\, x"></div><p class="shape">3 × 3 × 3 = 27 pesos</p></div>
+    <div class="tx"><p>La ventana recorre la foto: en cada lugar multiplica, suma y escribe <b>un número</b>.</p><div class="tex" data-plain="y = Σ w · x" data-tex="y = \sum w\, x"></div><p class="shape">3 × 3 × 3 = 27 pesos</p></div>
     <div class="vis cv">
-      <div class="lbl l1">píxeles (5 × 5)</div><div class="lbl l2">filtro · R, G, B</div><div class="lbl l3">resultado</div>
-      <div class="g5" id="cvPatch"></div>
-      <div class="ks"><div class="g3k" data-c="0"></div><div class="g3k" data-c="1"></div><div class="g3k" data-c="2"></div></div>
-      <div class="g3o" id="cvOut"></div>
-      <div class="calc" id="cvCalc"></div>
-      <div class="cvmap"><img src="assets/generated/hero.jpg" alt=""><i id="cvDot"></i></div>
+      <div class="sweep"><div class="src"><img src="assets/generated/hero.jpg" alt="Foto de entrada"><i class="win" id="cvWin"><span>3 × 3</span></i></div>
+        <b class="op">→</b><div class="dst"><canvas id="cvPaint" width="440" height="330" aria-label="Mapa de salida que se va pintando"></canvas><i class="win o" id="cvWinO"></i></div>
+        <p class="cap a">la foto</p><p class="cap b">el mapa que sale</p></div>
+      <div class="zoom"><p class="cap">un paso, con los números reales</p>
+        <div class="g5" id="cvPatch"></div><b class="op s">×</b><div class="ks"><div class="g3k" data-c="0"></div><div class="g3k" data-c="1"></div><div class="g3k" data-c="2"></div></div><b class="op s">=</b><div class="g3o" id="cvOut"></div>
+        <div class="calc" id="cvCalc"></div></div>
     </div>
   </div>
 </section>
 
 <!-- P3 ¿QUÉ ES EL 16? -->
 <section class="scene light pp" id="p03" data-tr="diag">
-  <div class="hd"><p class="eyebrow">Paso 3 de 16 · encoder</p><h2 class="ttl">¿Qué quiere decir <em>el 16</em>?</h2></div>
+  <div class="hd"><p class="eyebrow">Paso 3 de 16 · encoder</p><h2 class="ttl">16 ventanitas → <em>16 mapas</em></h2></div>
   <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
   <div class="body">
-    <div class="tx"><p>16 filtros → 16 mapas.</p><p class="shape">192 × 256 × 16</p></div>
+    <div class="tx"><p>16 filtros distintos, cada uno con su mapa. El <b>16</b> = canales.</p><p class="shape">192 × 256 × 16</p></div>
     <div class="vis k16">
       <div class="kg"><p class="cap">los 16 filtros aprendidos</p><div class="kgrid" id="k16"></div></div>
       <b class="op">→</b>
@@ -147,11 +153,14 @@
   <div class="hd"><p class="eyebrow">Paso 6 de 16 · encoder</p><h2 class="ttl">Max <em>pooling</em> 2 × 2</h2></div>
   <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con el paso actual resaltado"></svg>
   <div class="body">
-    <div class="tx"><p>El máximo de cada 2 × 2.</p><p class="shape">192 × 256 → 96 × 128</p><p class="tag0">sin pesos</p></div>
+    <div class="tx"><p>A <b>cada uno</b> de los 16 mapas: de cada 2 × 2, el máximo.</p><p class="shape">192 × 256 → 96 × 128</p><p class="tag0">sin pesos</p></div>
     <div class="vis mp">
-      <div class="g8" id="mpIn"></div><b class="op">→</b><div class="g4" id="mpOut"></div>
-      <figure class="a"><img src="assets/generated/step_prepool.png" alt=""><figcaption>un mapa · 192 × 256</figcaption></figure>
-      <figure class="b"><img class="pix" src="assets/generated/step_pool.png" alt=""><figcaption>después del pool · 96 × 128</figcaption></figure>
+      <figure class="m16"><div class="mw"><img src="assets/generated/step_16maps.png" alt="Los 16 mapas"><i id="mpTile"></i></div><figcaption>los 16 mapas del paso anterior</figcaption></figure>
+      <b class="op o1">→</b>
+      <figure class="one"><div class="mw"><img src="assets/generated/step_prepool.png" alt="Uno de los mapas"><i id="mpBox"></i></div><figcaption>uno de ellos · 192 × 256</figcaption></figure>
+      <b class="op o2">→</b>
+      <figure class="half"><img class="pix" src="assets/generated/step_pool.png" alt="El mismo mapa después del pool"><figcaption>96 × 128</figcaption></figure>
+      <div class="zoomp"><p class="cap">zoom: 8 × 8 → 4 × 4</p><div class="zr"><div class="g8" id="mpIn"></div><b class="op">→</b><div class="g4" id="mpOut"></div></div></div>
     </div>
   </div>
 </section>
@@ -278,52 +287,15 @@
 </section>
 
 
-<!-- 07 SKIPS -->
-<section class="scene hasmap light" id="skips" data-tr="door">
-  <div class="hd"><p class="eyebrow">Mismo entrenamiento, una diferencia</p><h2 class="ttl">¿Para qué sirven <em>las skips</em>?</h2></div>
-  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con la parte actual resaltada"></svg>
-  
-  <div class="cmp noadv" id="skCmp">
-    <img src="assets/generated/hero.jpg" alt="">
-    <img class="m" src="assets/generated/hero_plain.png" alt="Sin skip connections">
-    <div class="after"><img src="assets/generated/hero.jpg" alt=""><img class="m" src="assets/generated/hero_unet.png" alt="U-Net"></div>
-    <div class="hdl"><i></i></div>
-    <span class="lb l">sin skips</span><span class="lb r">U-Net</span>
-    <span class="drag">arrastra la línea</span>
-  </div>
-  <div class="sk-num">
-    <div><span>mIoU en test · sin skips</span><b class="c" id="skA">0</b></div>
-    <div><span>mIoU en test · U-Net</span><b class="u" id="skB">0</b></div>
-    <p data-s="1">Misma red, sin copiar los mapas del encoder. Sin skips, el decoder tiene que <b>adivinar</b> los bordes desde 12 × 16.</p>
-  </div>
-  <i data-s="1" hidden></i>
-</section>
-
-<!-- 08 CÓMO SE ENTRENA -->
-<section class="scene hasmap dark" id="salida" data-tr="flip">
-  <div class="hd"><p class="eyebrow">Cómo se entrena</p><h2 class="ttl">Pérdida y <em>métrica</em></h2></div>
-  <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con la parte actual resaltada"></svg>
-  
-  <div class="sd-l">
-    <div class="eq on"><span class="cap">pérdida · cross-entropy promedio por píxel</span><div data-plain="L = −(1/N) Σᵢ w(yᵢ) · log p(i, yᵢ)" data-tex="\mathcal{L} = -\dfrac{1}{N}\sum_{i=1}^{N} w_{y_i}\,\log p_{i,\,y_i}"></div>
-      <ul><li><b>N</b> = número de píxeles</li><li><b>y<sub>i</sub></b> = clase real del píxel i</li><li><b>p<sub>i,y</sub></b> = probabilidad que la red le dio a esa clase</li><li><b>w</b> = peso de la clase: las raras pesan más</li></ul></div>
-  </div>
-  <div class="sd-r" data-s="1">
-    <div class="eq on"><span class="cap">métrica · intersección sobre unión</span><div data-plain="IoU = |A ∩ B| / |A ∪ B|" data-tex="\text{IoU}_c = \dfrac{|\,A_c \cap B_c\,|}{|\,A_c \cup B_c\,|}"></div>
-      <div class="iou"><svg viewBox="0 0 360 200" id="sdIou"></svg><b id="sdIouV">0.00</b></div>
-      <ul><li><b>A</b> = píxeles que de verdad son de la clase</li><li><b>B</b> = píxeles que la red dijo que son</li><li><b>mIoU</b> = promedio de las 11 clases</li></ul></div>
-  </div>
-  <i data-s="1" hidden></i>
-</section>
-
 <!-- 09 ENTRENAMIENTO -->
 <section class="scene hasmap light" id="entrena" data-tr="corner">
   <div class="hd"><p class="eyebrow">CamVid · 367 fotos de entrenamiento</p><h2 class="ttl">Así <em>aprende a ver</em></h2></div>
   <svg class="mini" viewBox="0 0 1664 720" aria-label="Mapa de la U-Net con la parte actual resaltada"></svg>
   
-  <div class="tr-two">
-    <div><h4>Sin skips</h4><div class="sprite" id="trA"></div></div>
-    <div><h4 class="u">U-Net</h4><div class="sprite" id="trB"></div></div>
+  <div class="tr-three">
+    <div><h4>Sin skips</h4><canvas id="trA" width="400" height="300"></canvas></div>
+    <div><h4 class="u">U-Net</h4><canvas id="trB" width="400" height="300"></canvas></div>
+    <div><h4 class="g">Real</h4><div class="gt"><img src="assets/generated/hero.jpg" alt=""><img class="ov" src="assets/generated/hero_gt_small.png" alt="Máscara real"></div></div>
   </div>
   <div class="tr-ep"><b id="trEp">0</b><span>época</span></div>
   <svg class="tr-curve noadv" id="trCurve" viewBox="0 0 1664 250"></svg>

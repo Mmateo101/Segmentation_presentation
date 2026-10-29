@@ -473,3 +473,66 @@ svg .u-el.hl{filter:drop-shadow(0 0 8px #FFFFFF55)}
 @keyframes herePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.08)}}
 
 .pp .hd .ttl,.hasmap .hd .ttl{font-size:66px}
+
+/* ---------- reducir vs reducir y ampliar ---------- */
+#vs .vsd{position:absolute;left:128px;top:250px;width:1664px;height:700px;overflow:visible}
+#vs .vsout{transition:opacity .5s}
+
+/* ---------- P2: la ventanita recorre la foto ---------- */
+.pp .cv .sweep{position:relative;height:370px}
+.pp .cv .sweep .src,.pp .cv .sweep .dst{position:absolute;top:0;width:440px;height:330px;border-radius:14px;overflow:hidden;background:#E3E8F2}
+.pp .cv .sweep .src{left:0}.pp .cv .sweep .dst{left:540px}
+.pp .cv .sweep .src img{width:100%;height:100%;border-radius:0}
+.pp .cv .sweep canvas{width:440px;height:330px;display:block}
+.pp .cv .sweep .op{position:absolute;left:470px;top:130px}
+.pp .cv .sweep .win{position:absolute;border:4px solid var(--sun);box-sizing:border-box;box-shadow:0 0 0 3px #0F1220,0 0 18px #FFD23F;border-radius:3px}
+.pp .cv .sweep .win span{position:absolute;left:50%;top:-30px;transform:translateX(-50%);font:700 15px var(--mono);color:#0F1220;background:var(--sun);padding:2px 7px;border-radius:5px;white-space:nowrap}
+.pp .cv .sweep .win.o{box-shadow:0 0 0 3px #0F1220}
+.pp .cv .sweep .cap{position:absolute;top:338px;margin:0}
+.pp .cv .sweep .cap.a{left:0}.pp .cv .sweep .cap.b{left:540px}
+.pp .cv .zoom{display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:relative}
+.pp .cv .zoom > .cap{flex-basis:100%;margin:0 0 4px}
+.pp .cv .zoom .g5,.pp .cv .zoom .ks,.pp .cv .zoom .g3o,.pp .cv .zoom .calc{position:static}
+.pp .cv .zoom .g5{grid-template-columns:repeat(5,38px)}
+.pp .cv .zoom .g5 i{height:38px;font-size:11px;display:grid;place-items:center}
+.pp .cv .zoom .ks{flex-direction:row;gap:6px}
+.pp .cv .zoom .g3k{grid-template-columns:repeat(3,34px)}
+.pp .cv .zoom .g3k i{height:24px;font-size:9px}
+.pp .cv .zoom .g3o{grid-template-columns:repeat(3,48px)}
+.pp .cv .zoom .g3o i{height:48px;font-size:14px}
+.pp .cv .zoom .op.s{font-size:30px}
+.pp .cv .zoom .calc{width:auto;font-size:18px;margin-left:10px;color:var(--mute)}
+.pp .cv .zoom .calc span{background:var(--sun);color:var(--ink);padding:2px 10px;border-radius:6px;font-weight:700}
+
+/* ---------- P6: max pooling, sobre qué ---------- */
+.pp .mp figure,.pp .mp .op,.pp .mp .g8,.pp .mp .g4{position:static}
+.pp .mp figure{position:absolute;top:0}
+.pp .mp figure.m16{left:0;width:300px}
+.pp .mp figure.one{left:380px;width:340px}
+.pp .mp figure.half{left:800px;width:170px;top:64px}
+.pp .mp .mw{position:relative}
+.pp .mp figure.m16 img{width:300px;height:225px}
+.pp .mp figure.one img{width:340px;height:255px}
+.pp .mp figure.half img{width:170px;height:128px}
+.pp .mp #mpTile{position:absolute;width:25%;height:25%;border:4px solid var(--sun);box-sizing:border-box;border-radius:4px;box-shadow:0 0 14px #FFD23F}
+.pp .mp #mpBox{position:absolute;min-width:16px;min-height:16px;border:3px solid var(--sun);box-sizing:border-box;box-shadow:0 0 0 2px #0F1220;transform:translate(-4px,-4px)}
+.pp .mp .op.o1{position:absolute;left:318px;top:80px}
+.pp .mp .op.o2{position:absolute;left:738px;top:100px}
+.pp .mp .zoomp{position:absolute;left:380px;top:310px}
+.pp .mp .zoomp .cap{margin:0 0 8px}
+.pp .mp .zr{display:flex;align-items:center;gap:20px}
+.pp .mp .zr .g8{grid-template-columns:repeat(8,34px)}
+.pp .mp .zr .g4{grid-template-columns:repeat(4,34px)}
+.pp .mp .zr i{height:34px;font-size:10px}
+
+/* ---------- épocas ---------- */
+#entrena .tr-three{position:absolute;left:128px;top:280px;display:flex;gap:28px}
+#entrena .tr-three h4{font:700 24px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--coral);margin:0 0 10px}
+#entrena .tr-three h4.u{color:var(--blue)}#entrena .tr-three h4.g{color:var(--mute)}
+#entrena .tr-three canvas,#entrena .tr-three .gt{width:400px;height:300px;border-radius:14px;display:block;background:#000}
+#entrena .tr-three .gt{position:relative;overflow:hidden}
+#entrena .tr-three .gt img{position:absolute;inset:0;width:100%;height:100%}
+#entrena .tr-three .gt .ov{opacity:.82}
+#entrena .tr-ep{left:1450px;top:330px}
+#entrena .tr-ep b{font-size:150px}
+#entrena .tr-curve{top:640px;height:300px}
