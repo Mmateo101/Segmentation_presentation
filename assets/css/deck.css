@@ -73,8 +73,6 @@ svg .u-el.hl{filter:drop-shadow(0 0 8px #FFFFFF55)}
 
 /* ---------- paso a paso (shared) ---------- */
 .pp .hd{right:640px}
-.pp .mini{position:absolute;right:128px;top:72px;width:470px;height:203px;background:#0F1220;border-radius:16px;overflow:hidden}
-.dark.pp .mini{background:#181C2E;border:2px solid var(--edge)}
 .pp .body{position:absolute;left:128px;right:128px;top:300px;bottom:110px}
 .pp .tx{position:absolute;left:0;top:0;width:560px}
 .pp .tx .no{font:600 22px var(--mono);letter-spacing:3px;text-transform:uppercase;color:var(--blue);margin:0}
@@ -464,4 +462,14 @@ svg .u-el.hl{filter:drop-shadow(0 0 8px #FFFFFF55)}
 /* P16 */
 .pp .tr2 h4{margin-bottom:22px}
 .pp .pr2 span,.pp .pr3 span{font-size:24px}
-.pp .mini .u-el.hl{filter:drop-shadow(0 0 10px #FFD23F) drop-shadow(0 0 4px #FFD23F)}
+
+/* ---------- mapa de la U-Net en cada diapositiva de la red ---------- */
+.mini{position:absolute;right:128px;top:56px;width:560px;height:242px;background:#0F1220;border-radius:16px;overflow:hidden;z-index:4}
+.dark .mini{background:#181C2E;border:2px solid var(--edge)}
+.pp .hd,.hasmap .hd{right:720px}
+.mini .u-el.dim{opacity:.22}
+.mini .u-el.hl{filter:drop-shadow(0 0 10px #FFD23F) drop-shadow(0 0 4px #FFD23F)}
+.mini .here .ring{animation:herePulse 1.6s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes herePulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.45;transform:scale(1.08)}}
+
+.pp .hd .ttl,.hasmap .hd .ttl{font-size:66px}

@@ -113,10 +113,33 @@
     tag(svg('image', { href: G + 'hero.jpg', x: 1524, y: rowY[0] - 52, width: 140, height: 105, preserveAspectRatio: 'none' }, g), 'out', 'O');
     tag(svg('image', { href: G + 'hero_unet.png', x: 1524, y: rowY[0] - 52, width: 140, height: 105, preserveAspectRatio: 'none', opacity: .85 }, g), 'out', 'O');
     text(1594, rowY[0] + 78, INP[0] + '×' + INP[1] + '×11', 'middle', 17, null, 'O', 'out');
+    var mark = null;
+    if (opt.mini) {
+      svg('text', { x: 330, y: 700, 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 700, fill: '#8A91B4', 'font-family': 'JetBrains Mono' }, g).textContent = 'encoder ↓';
+      svg('text', { x: 1334, y: 700, 'text-anchor': 'middle', 'font-size': 64, 'font-weight': 700, fill: '#8A91B4', 'font-family': 'JetBrains Mono' }, g).textContent = 'decoder ↑';
+      mark = svg('g', { 'class': 'here' }, s);
+      svg('ellipse', { 'class': 'ring', fill: 'none', stroke: '#FFD23F', 'stroke-width': 8 }, mark);
+      var chip = svg('g', {}, mark);
+      svg('rect', { 'class': 'chipbg', rx: 22, height: 86, width: 230, fill: '#FFD23F' }, chip);
+      svg('text', { 'class': 'chiptx', 'font-size': 60, 'font-weight': 700, fill: '#0F1220', 'font-family': 'JetBrains Mono' }, chip).textContent = 'aquí';
+    }
+    function place() {
+      if (!mark) return;
+      var on = els.filter(function (e) { return e.classList.contains('hl') && e.getAttribute('data-t') !== 'lbl'; });
+      if (!on.length) { mark.style.display = 'none'; return; }
+      var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+      on.forEach(function (e) { var b = e.getBBox(); x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x + b.width); y1 = Math.max(y1, b.y + b.height); });
+      var cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, rx = (x1 - x0) / 2 + 34, ry = (y1 - y0) / 2 + 30;
+      mark.style.display = '';
+      var r = mark.querySelector('.ring'); r.setAttribute('cx', cx); r.setAttribute('cy', cy); r.setAttribute('rx', rx); r.setAttribute('ry', ry);
+      var tx = clamp(cx - 115, 10, 1664 - 240), ty = y0 - 34 - 86 < 10 ? Math.min(y1 + 34, 720 - 96) : y0 - 34 - 86;
+      mark.querySelector('.chipbg').setAttribute('x', tx); mark.querySelector('.chipbg').setAttribute('y', ty);
+      var t = mark.querySelector('.chiptx'); t.setAttribute('x', tx + 46); t.setAttribute('y', ty + 62);
+    }
     var els = $$('.u-el', s);
     return {
-      stages: function (list) { els.forEach(function (e) { var on = !list || list.indexOf(e.getAttribute('data-st')) >= 0; e.classList.toggle('dim', !on); e.classList.toggle('hl', !!list && on); }); },
-      types: function (list) { els.forEach(function (e) { var on = !list || list.indexOf(e.getAttribute('data-t')) >= 0; e.classList.toggle('dim', !on); e.classList.toggle('hl', !!list && on); }); }
+      stages: function (list) { els.forEach(function (e) { var on = !list || list.indexOf(e.getAttribute('data-st')) >= 0; e.classList.toggle('dim', !on); e.classList.toggle('hl', !!list && on); }); place(); },
+      types: function (list) { els.forEach(function (e) { var on = !list || list.indexOf(e.getAttribute('data-t')) >= 0; e.classList.toggle('dim', !on); e.classList.toggle('hl', !!list && on); }); if (mark) mark.style.display = 'none'; }
     };
   }
 
@@ -207,9 +230,10 @@
   var MINI = {}, MAPS = {
     p01: ['in'], p02: ['in', 'L0'], p03: ['L0'], p04: ['L0'], p05: ['L0'], p06: ['P0'],
     p07: ['L1', 'P1', 'L2', 'P2', 'L3', 'P3'], p08: ['B'], p09: ['U3'], p10: ['K3'], p11: ['D3'],
-    p12: ['U2', 'K2', 'D2', 'U1', 'K1', 'D1', 'U0', 'K0', 'D0'], p13: ['O'], p14: ['O'], p15: ['O']
+    p12: ['U2', 'K2', 'D2', 'U1', 'K1', 'D1', 'U0', 'K0', 'D0'], p13: ['O'], p14: ['O'], p15: ['O'],
+    skips: ['K0', 'K1', 'K2', 'K3'], salida: ['O'], resultados: ['O'], entrena: null
   };
-  $$('.pp').forEach(function (sc) { var s = $('svg.mini', sc); s.id = 'mini-' + sc.id; MINI[sc.id] = buildUNet(s, { labels: false }); });
+  $$('svg.mini').forEach(function (s) { var sc = s.closest('.scene'); s.id = 'mini-' + sc.id; MINI[sc.id] = buildUNet(s, { labels: false, mini: true }); });
   function mini(id) { if (!MINI[id]) return; if (id === 'p16') MINI[id].types(['conv', 'up', 'out']); else MINI[id].stages(MAPS[id]); }
   var CD = D.conv_demo;
 
